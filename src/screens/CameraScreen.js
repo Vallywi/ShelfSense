@@ -52,6 +52,7 @@ export default function CameraScreen({ navigation }) {
     return () => { stopScanner(); };
   }, []);
 
+
   const startScanner = async () => {
     try {
       setError(null);
@@ -99,8 +100,8 @@ export default function CameraScreen({ navigation }) {
       try {
         const state = scannerRef.current.getState();
         if (state === 2) await scannerRef.current.stop();
-      } catch (e) {}
-      try { scannerRef.current.clear(); } catch (e) {}
+      } catch (e) { }
+      try { scannerRef.current.clear(); } catch (e) { }
       scannerRef.current = null;
     }
   };
