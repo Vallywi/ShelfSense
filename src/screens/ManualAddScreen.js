@@ -18,12 +18,15 @@ const CATEGORIES = [
 ];
 
 export default function ManualAddScreen({ navigation, route }) {
-  const [name, setName] = useState(route.params?.barcode ? `Scanned Item (${route.params.barcode})` : '');
-  const [category, setCategory] = useState('Others');
-  const [expiryDays, setExpiryDays] = useState('');
+  const [name, setName] = useState(
+    route.params?.productName || (route.params?.barcode ? `Scanned Item (${route.params.barcode})` : '')
+  );
+  const [category, setCategory] = useState(route.params?.productCategory || 'Others');
+  const [expiryDays, setExpiryDays] = useState(route.params?.expiryDays || '');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [saved, setSaved] = useState(false);
+  const scannedExpiry = route.params?.detectedExpiryDate;
 
   const handleSave = async () => {
     if (!name.trim()) {

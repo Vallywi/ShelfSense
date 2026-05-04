@@ -13,6 +13,7 @@ import PantryScreen from '../screens/PantryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AddGroceriesScreen from '../screens/AddGroceriesScreen';
 import CameraScreen from '../screens/CameraScreen';
+import ExpiryScanScreen from '../screens/ExpiryScanScreen';
 import ManualAddScreen from '../screens/ManualAddScreen';
 
 const Stack = createNativeStackNavigator();
@@ -83,6 +84,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="AddGroceries" component={AddGroceriesScreen} options={{ headerShown: true, title: 'Add Groceries' }} />
         <Stack.Screen name="CameraScanner" component={CameraScreen} options={{ headerShown: true, title: 'Scan Barcode' }} />
+        <Stack.Screen name="ExpiryScan" component={ExpiryScanScreen} options={{ headerShown: true, title: 'Scan Expiry Date' }} />
         <Stack.Screen name="ManualAdd" component={ManualAddScreen} options={{ headerShown: true, title: 'Add Item Manually' }} />
       </Stack.Navigator>
     </NavigationContainer>
