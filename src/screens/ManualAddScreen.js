@@ -33,7 +33,9 @@ function getDefaultExpiry(productName) {
 }
 
 export default function ManualAddScreen({ navigation, route }) {
-  const initialName = route.params?.productName || '';
+  const initialName = route.params?.productName && route.params?.productName !== 'Product Name Not Found' 
+    ? route.params.productName 
+    : '';
   const initialCategory = route.params?.productCategory || 'Others';
 
   // If we have a scanned expiry date, use it; otherwise predict from name
@@ -51,9 +53,12 @@ export default function ManualAddScreen({ navigation, route }) {
   const [name, setName] = useState(initialName);
   const [category, setCategory] = useState(initialCategory);
   const [expiryDate, setExpiryDate] = useState(initialExpiry);
+  const [quantity, setQuantity] = useState(route.params?.productSize ? `1 (${route.params.productSize})` : '1');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [saved, setSaved] = useState(false);
+  
+  const productImage = route.params?.productImage;
 
   // When name changes and no expiry is set, auto-predict
   const handleNameChange = (text) => {
@@ -81,6 +86,7 @@ export default function ManualAddScreen({ navigation, route }) {
       await addItem({
         name: name.trim(),
         category,
+        quantity: quantity.trim(),
         expiryDate: expDate.toISOString(),
       });
 
@@ -128,6 +134,13 @@ export default function ManualAddScreen({ navigation, route }) {
         <View style={styles.scannedBanner}>
           <Ionicons name="barcode" size={18} color="#2ECC71" />
           <Text style={styles.scannedBannerText}>  Scanned: {route.params.barcode}</Text>
+        </View>
+      )}
+
+      {/* Product Image Preview */}
+      {productImage && (
+        <View style={{ alignItems: 'center', marginVertical: 15 }}>
+          <img src={productImage} style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 12, backgroundColor: '#fff' }} alt="Product" />
         </View>
       )}
 
@@ -186,6 +199,18 @@ export default function ManualAddScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
+
+      {/* Quantity */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Quantity / Size</Text>
+        <TextInput
+          style={styles.input}
+          value={quantity}
+          onChangeText={setQuantity}
+          placeholder="e.g. 1, 500g, 2 boxes"
+          placeholderTextColor="#555"
+        />
+      </View>
 
       {/* Expiration Date Picker */}
       <View style={styles.section}>

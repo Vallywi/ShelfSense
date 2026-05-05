@@ -130,7 +130,10 @@ export default function HomeScreen({ navigation }) {
         </View>
         <View style={styles.cardCenter}>
           <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={styles.itemCategory}>{item.category}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+            <Text style={styles.itemCategory}>{item.category}</Text>
+            {item.quantity ? <Text style={{ color: '#aaa', fontSize: 13, alignSelf: 'center' }}>• Qty: {item.quantity}</Text> : null}
+          </View>
           <Text style={styles.itemDate}>Expires: {new Date(item.expiryDate).toLocaleDateString()}</Text>
           <Text style={[styles.recommendation, { color: getStatusColor(item.status) }]}>💡 {recommendation}</Text>
         </View>

@@ -31,13 +31,19 @@ async function lookupBarcodeAPI(code) {
     if (data.status === 1 && data.product) {
       const name = data.product.product_name || data.product.generic_name || data.product.brands || `Product (${code})`;
       const category = mapCategory(data.product.categories);
-      return { name, category };
+      const imageUrl = data.product.image_front_url || data.product.image_url || null;
+      const quantity = data.product.quantity || null;
+      return { name, category, imageUrl, quantity };
     }
   } catch (error) {
     console.error('API lookup error:', error);
   }
   // Fallback if not found or network error
-  return { name: `Unknown Product (${code})`, category: 'Others' };
+  return { 
+    name: 'Product Name Not Found', 
+    category: 'Others',
+    isUnknown: true 
+  };
 }
 
 export default function CameraScreen({ navigation }) {
@@ -89,8 +95,11 @@ export default function CameraScreen({ navigation }) {
               barcode: decodedText,
               productName: product.name,
               productCategory: product.category,
+              productImage: product.imageUrl,
+              productSize: product.quantity,
+              isUnknown: product.isUnknown
             });
-          }, 2000);
+          }, 2500);
         },
         () => { /* scan miss — ignore */ }
       );
@@ -170,17 +179,43 @@ export default function CameraScreen({ navigation }) {
           )}
 
           {productInfo && (
-            <View style={styles.productCard}>
-              <Ionicons name="cube" size={30} color="#2ECC71" />
+            <View style={[styles.productCard, productInfo.isUnknown && { borderColor: '#f39c12' }]}>
+              {productInfo.imageUrl ? (
+                <img 
+                  src={productInfo.imageUrl} 
+                  style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 15, borderRadius: 10, backgroundColor: '#fff' }} 
+                  alt="Product" 
+                />
+              ) : (
+                <Ionicons 
+                  name={productInfo.isUnknown ? "help-circle" : "cube"} 
+                  size={40} 
+                  color={productInfo.isUnknown ? "#f39c12" : "#2ECC71"} 
+                  style={{ marginBottom: 10 }}
+                />
+              )}
+              
               <Text style={styles.productName}>{productInfo.name}</Text>
-              <Text style={styles.productCategory}>{productInfo.category}</Text>
+              
+              {!productInfo.isUnknown && (
+                <View style={styles.badgesRow}>
+                  <Text style={styles.badge}>{productInfo.category}</Text>
+                  {productInfo.quantity && <Text style={styles.badge}>{productInfo.quantity}</Text>}
+                </View>
+              )}
+
+              {productInfo.isUnknown && (
+                <Text style={[styles.productCategory, { color: '#888', marginTop: 8 }]}>
+                  Not in global database. You can enter the name on the final step.
+                </Text>
+              )}
             </View>
           )}
 
           {autoDetecting && productInfo && (
             <View style={styles.autoProgress}>
               <ActivityIndicator size="small" color="#2ECC71" />
-              <Text style={styles.autoText}>  Opening expiry date scanner...</Text>
+              <Text style={styles.autoText}>  Proceeding to expiry scanner...</Text>
             </View>
           )}
         </View>
@@ -223,6 +258,8 @@ const styles = StyleSheet.create({
   },
   productName: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
   productCategory: { color: '#2ECC71', fontSize: 15, marginTop: 8 },
+  badgesRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'center', flexWrap: 'wrap' },
+  badge: { backgroundColor: '#2a2a1e', color: '#2ECC71', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, fontSize: 13, overflow: 'hidden' },
   autoProgress: { flexDirection: 'row', alignItems: 'center', marginTop: 25 },
   autoText: { color: '#888', fontSize: 14 },
   manualBtn: { padding: 18, alignItems: 'center', backgroundColor: '#1a1a1a' },

@@ -114,10 +114,39 @@ export default function ExpiryScanScreen({ navigation, route }) {
     try {
       const video = document.getElementById('expiry-video');
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      
+      // Calculate the crop area (the center rectangle)
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      
+      // We estimate the bounding box. The UI box is 80% width, ~60px height.
+      // We'll crop 80% width and 30% height from the center to ensure we get the text
+      const cropW = vw * 0.8;
+      const cropH = vh * 0.3; 
+      const cropX = (vw - cropW) / 2;
+      const cropY = (vh - cropH) / 2;
+
+      canvas.width = cropW;
+      canvas.height = cropH;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
+      
+      // Draw only the cropped section
+      ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      // Preprocessing: Grayscale and High Contrast
+      const imgData = ctx.getImageData(0, 0, cropW, cropH);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        // Grayscale
+        const avg = (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
+        // Contrast threshold (makes text solid black, background solid white)
+        // Works well for printed dates
+        const val = avg > 110 ? 255 : 0;
+        data[i] = val;     // R
+        data[i+1] = val;   // G
+        data[i+2] = val;   // B
+      }
+      ctx.putImageData(imgData, 0, 0);
 
       const imageData = canvas.toDataURL('image/png');
       setImagePreview(imageData);
@@ -126,11 +155,7 @@ export default function ExpiryScanScreen({ navigation, route }) {
 
       // Run OCR with Tesseract.js
       const result = await Tesseract.recognize(imageData, 'eng', {
-        logger: (info) => {
-          if (info.status === 'recognizing text') {
-            // Progress update
-          }
-        },
+        logger: (info) => { },
       });
 
       const text = result.data.text;
@@ -153,6 +178,8 @@ export default function ExpiryScanScreen({ navigation, route }) {
       barcode,
       productName,
       productCategory,
+      productImage: route.params?.productImage,
+      productSize: route.params?.productSize,
       expiryDays: Math.max(1, daysUntilExpiry).toString(),
       detectedExpiryDate: detectedDate.toISOString(),
     });
@@ -163,6 +190,8 @@ export default function ExpiryScanScreen({ navigation, route }) {
       barcode,
       productName,
       productCategory,
+      productImage: route.params?.productImage,
+      productSize: route.params?.productSize,
     });
   };
 
