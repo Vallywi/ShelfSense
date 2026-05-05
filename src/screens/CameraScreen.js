@@ -7,40 +7,43 @@ if (Platform.OS === 'web') {
   Html5Qrcode = require('html5-qrcode').Html5Qrcode;
 }
 
-// Extended barcode product lookup database
-const BARCODE_DB = {
-  '4902430928434': { name: 'Nissin Cup Noodles', category: 'Snacks' },
-  '4800016124242': { name: 'Argentina Corned Beef', category: 'Canned Goods' },
-  '4800361413121': { name: 'Bear Brand Milk', category: 'Dairy & Eggs' },
-  '4902102141178': { name: 'Yakult', category: 'Beverages' },
-  '4800092130816': { name: 'Lucky Me Pancit Canton', category: 'Grains & Rice' },
-  '036000291452': { name: 'Bounty Paper Towels', category: 'Others' },
-  '049000042566': { name: 'Coca Cola', category: 'Beverages' },
-  '4800016052200': { name: 'Century Tuna', category: 'Canned Goods' },
-  '4800016310102': { name: 'Argentina Meat Loaf', category: 'Canned Goods' },
-  '4800092120107': { name: 'Lucky Me Instant Noodles', category: 'Grains & Rice' },
-  '4902430948500': { name: 'Nissin Yakisoba', category: 'Snacks' },
-  '4800194113472': { name: 'Magnolia Chicken', category: 'Meat & Poultry' },
-  '0000000000000': { name: 'Test Product', category: 'Others' },
-  '5449000000996': { name: 'Coca Cola 330ml', category: 'Beverages' },
-  '8850999220000': { name: 'Mama Noodles', category: 'Grains & Rice' },
-  '8801043157698': { name: 'Shin Ramyun', category: 'Grains & Rice' },
-  '4902105043530': { name: 'Pocky Chocolate', category: 'Snacks' },
-  '4901990504522': { name: 'Calbee Chips', category: 'Snacks' },
-};
+// Map Open Food Facts categories to our app categories
+function mapCategory(apiCategories) {
+  if (!apiCategories) return 'Others';
+  const lowerCats = apiCategories.toLowerCase();
+  if (lowerCats.includes('dairy') || lowerCats.includes('milk') || lowerCats.includes('cheese')) return 'Dairy & Eggs';
+  if (lowerCats.includes('meat') || lowerCats.includes('poultry') || lowerCats.includes('beef') || lowerCats.includes('pork') || lowerCats.includes('chicken')) return 'Meat & Poultry';
+  if (lowerCats.includes('fish') || lowerCats.includes('seafood') || lowerCats.includes('tuna')) return 'Fish & Seafood';
+  if (lowerCats.includes('plant-based') || lowerCats.includes('vegetable') || lowerCats.includes('fruit')) return 'Fresh Produce';
+  if (lowerCats.includes('bread') || lowerCats.includes('bakery') || lowerCats.includes('pastries')) return 'Bakery';
+  if (lowerCats.includes('cereal') || lowerCats.includes('rice') || lowerCats.includes('grain') || lowerCats.includes('pasta') || lowerCats.includes('noodle')) return 'Grains & Rice';
+  if (lowerCats.includes('canned')) return 'Canned Goods';
+  if (lowerCats.includes('snack') || lowerCats.includes('chip') || lowerCats.includes('chocolate') || lowerCats.includes('sweet')) return 'Snacks';
+  if (lowerCats.includes('beverage') || lowerCats.includes('drink') || lowerCats.includes('water')) return 'Beverages';
+  return 'Others';
+}
 
-function lookupBarcode(code) {
-  if (BARCODE_DB[code]) return BARCODE_DB[code];
-  // Try to auto-detect product type from barcode prefix
-  const prefix = code.substring(0, 3);
-  if (prefix === '480') return { name: `Philippine Product (${code})`, category: 'Others' };
-  if (prefix === '490') return { name: `Japanese Product (${code})`, category: 'Others' };
-  return { name: `Product (${code})`, category: 'Others' };
+async function lookupBarcodeAPI(code) {
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const data = await res.json();
+    
+    if (data.status === 1 && data.product) {
+      const name = data.product.product_name || data.product.generic_name || data.product.brands || `Product (${code})`;
+      const category = mapCategory(data.product.categories);
+      return { name, category };
+    }
+  } catch (error) {
+    console.error('API lookup error:', error);
+  }
+  // Fallback if not found or network error
+  return { name: `Unknown Product (${code})`, category: 'Others' };
 }
 
 export default function CameraScreen({ navigation }) {
   const [scanning, setScanning] = useState(false);
   const [scannedData, setScannedData] = useState(null);
+  const [productInfo, setProductInfo] = useState(null);
   const [error, setError] = useState(null);
   const [autoDetecting, setAutoDetecting] = useState(false);
   const scannerRef = useRef(null);
@@ -52,12 +55,12 @@ export default function CameraScreen({ navigation }) {
     return () => { stopScanner(); };
   }, []);
 
-
   const startScanner = async () => {
     try {
       setError(null);
       setScanning(true);
       setScannedData(null);
+      setProductInfo(null);
 
       // Wait for DOM element to be ready
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -68,15 +71,18 @@ export default function CameraScreen({ navigation }) {
       await scanner.start(
         { facingMode: 'environment' },
         { fps: 15, qrbox: { width: 280, height: 150 }, aspectRatio: 1.0 },
-        (decodedText) => {
+        async (decodedText) => {
           // Auto-detected! Stop scanning immediately
           setScannedData(decodedText);
           setScanning(false);
           setAutoDetecting(true);
           stopScanner();
 
+          // Fetch product data from Open Food Facts API
+          const product = await lookupBarcodeAPI(decodedText);
+          setProductInfo(product);
+
           // Auto-proceed after showing the product for 2 seconds
-          const product = lookupBarcode(decodedText);
           setTimeout(() => {
             setAutoDetecting(false);
             navigation.navigate('ExpiryScan', {
@@ -153,16 +159,25 @@ export default function CameraScreen({ navigation }) {
       {scannedData && (
         <View style={styles.resultContainer}>
           <Ionicons name="checkmark-circle" size={70} color="#2ECC71" />
-          <Text style={styles.resultTitle}>Product Detected!</Text>
-          <Text style={styles.resultCode}>Barcode: {scannedData}</Text>
+          <Text style={styles.resultTitle}>Barcode Detected!</Text>
+          <Text style={styles.resultCode}>{scannedData}</Text>
 
-          <View style={styles.productCard}>
-            <Ionicons name="cube" size={30} color="#2ECC71" />
-            <Text style={styles.productName}>{lookupBarcode(scannedData).name}</Text>
-            <Text style={styles.productCategory}>{lookupBarcode(scannedData).category}</Text>
-          </View>
+          {autoDetecting && !productInfo && (
+            <View style={[styles.productCard, { paddingVertical: 40 }]}>
+              <ActivityIndicator size="large" color="#2ECC71" />
+              <Text style={[styles.autoText, { marginTop: 15 }]}>Fetching product info...</Text>
+            </View>
+          )}
 
-          {autoDetecting && (
+          {productInfo && (
+            <View style={styles.productCard}>
+              <Ionicons name="cube" size={30} color="#2ECC71" />
+              <Text style={styles.productName}>{productInfo.name}</Text>
+              <Text style={styles.productCategory}>{productInfo.category}</Text>
+            </View>
+          )}
+
+          {autoDetecting && productInfo && (
             <View style={styles.autoProgress}>
               <ActivityIndicator size="small" color="#2ECC71" />
               <Text style={styles.autoText}>  Opening expiry date scanner...</Text>

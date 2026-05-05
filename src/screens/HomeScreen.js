@@ -32,9 +32,62 @@ export default function HomeScreen({ navigation }) {
     const unsubscribe = subscribeToItems((fetchedItems) => {
       setItems(fetchedItems);
       setLoading(false);
+      checkNotifications(fetchedItems);
     });
     return () => unsubscribe && unsubscribe();
   }, []);
+
+  const checkNotifications = async (fetchedItems) => {
+    if (Platform.OS !== 'web') return;
+    if (!("Notification" in window)) return;
+    
+    try {
+      if (Notification.permission === "default") {
+        await Notification.requestPermission();
+      }
+
+      if (Notification.permission === "granted") {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const notifiedKeysStr = await AsyncStorage.getItem('notified_items');
+        const notifiedKeys = notifiedKeysStr ? JSON.parse(notifiedKeysStr) : {};
+        
+        let updatedKeys = { ...notifiedKeys };
+        const today = new Date();
+        let changed = false;
+
+        fetchedItems.forEach(item => {
+          if (!item.expiryDate) return;
+          const expDate = new Date(item.expiryDate);
+          const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+          
+          let alertLevel = null;
+          if (diffDays === 1) alertLevel = '1_day';
+          else if (diffDays === 3) alertLevel = '3_days';
+          else if (diffDays <= 0) alertLevel = 'expired';
+
+          if (alertLevel) {
+            const notifKey = `${item.id}_${alertLevel}`;
+            if (!notifiedKeys[notifKey]) {
+              let message = '';
+              if (alertLevel === 'expired') message = `⚠️ Your ${item.name} has expired!`;
+              else if (alertLevel === '1_day') message = `⚠️ Your ${item.name} expires tomorrow. Use it now.`;
+              else if (alertLevel === '3_days') message = `⏰ Your ${item.name} expires in 3 days.`;
+
+              new Notification("ShelfSense Alert", { body: message });
+              updatedKeys[notifKey] = true;
+              changed = true;
+            }
+          }
+        });
+
+        if (changed) {
+          await AsyncStorage.setItem('notified_items', JSON.stringify(updatedKeys));
+        }
+      }
+    } catch (e) {
+      console.log('Notification error:', e);
+    }
+  };
 
   const expiringSoonCount = items.filter(i => i.status === 'soon' || i.status === 'urgent').length;
   const expiredCount = items.filter(i => i.status === 'expired').length;
