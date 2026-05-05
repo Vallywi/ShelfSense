@@ -1,73 +1,41 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getStatus, predictExpiry } from './ai';
+import { getStatus } from './ai';
+import { fetchItems, addItemAPI, updateItemAPI, deleteItemAPI } from './api';
 
-const ITEMS_KEY = 'shelfsense_items';
-
-// Get all items from local storage
-const getStoredItems = async () => {
-  try {
-    const json = await AsyncStorage.getItem(ITEMS_KEY);
-    return json ? JSON.parse(json) : [];
-  } catch (error) {
-    console.error('Error reading items:', error);
-    return [];
-  }
-};
-
-// Save all items to local storage
-const saveItems = async (items) => {
-  try {
-    await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(items));
-  } catch (error) {
-    console.error('Error saving items:', error);
-    throw error;
-  }
-};
-
-// Add a new item
+// Add a new item via backend
 export const addItem = async (itemData) => {
-  const items = await getStoredItems();
   const status = getStatus(itemData.expiryDate);
-
-  const newItem = {
-    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+  const data = await addItemAPI({
     name: itemData.name,
     category: itemData.category,
+    quantity: itemData.quantity,
     expiryDate: itemData.expiryDate,
+    imageUrl: itemData.imageUrl, // Save real product image
     status,
-    createdAt: new Date().toISOString(),
-  };
-
-  items.push(newItem);
-  await saveItems(items);
-  return newItem;
+  });
+  return data.item;
 };
 
-// Subscribe to items (polls storage and calls callback)
-// Returns an unsubscribe function
+// Subscribe to items (polls backend every 3s)
 export const subscribeToItems = (callback) => {
   let active = true;
 
-  const fetchItems = async () => {
-    const items = await getStoredItems();
-    // Re-calculate status for each item on every fetch
-    const updatedItems = items.map(item => ({
-      ...item,
-      status: getStatus(item.expiryDate),
-    }));
-    // Sort by expiry date ascending
-    updatedItems.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-
-    if (active) {
-      callback(updatedItems);
+  const fetchAll = async () => {
+    try {
+      const data = await fetchItems();
+      const items = (data.items || []).map(item => ({
+        ...item,
+        status: getStatus(item.expiryDate),
+      }));
+      items.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+      if (active) callback(items);
+    } catch (e) {
+      console.warn('Item fetch error:', e.message);
+      if (active) callback([]);
     }
   };
 
-  // Fetch immediately
-  fetchItems();
-
-  // Poll every 2 seconds so the UI stays fresh
-  const interval = setInterval(fetchItems, 2000);
+  fetchAll();
+  const interval = setInterval(fetchAll, 3000);
 
   return () => {
     active = false;
@@ -75,33 +43,42 @@ export const subscribeToItems = (callback) => {
   };
 };
 
-// Update an existing item
+// Update an existing item via backend
 export const updateItem = async (itemId, updatedData) => {
-  const items = await getStoredItems();
-  const index = items.findIndex(i => i.id === itemId);
-
-  if (index === -1) throw new Error('Item not found');
-
-  const status = updatedData.expiryDate
-    ? getStatus(updatedData.expiryDate)
-    : items[index].status;
-
-  items[index] = { ...items[index], ...updatedData, status };
-  await saveItems(items);
-  return items[index];
+  const status = updatedData.expiryDate ? getStatus(updatedData.expiryDate) : undefined;
+  const dataToUpdate = { ...updatedData };
+  if (status) dataToUpdate.status = status;
+  const data = await updateItemAPI(itemId, dataToUpdate);
+  return data.item;
 };
 
-// Delete an item
+// Update item quantity directly
+export const updateItemQuantity = async (itemId, currentQuantity, delta) => {
+  // Extract number from string if needed (e.g. "2 boxes" -> 2)
+  const match = String(currentQuantity).match(/^(\d+)/);
+  let num = match ? parseInt(match[1]) : 1;
+  const suffix = String(currentQuantity).replace(/^\d+/, '').trim();
+  
+  num = Math.max(0, num + delta);
+  const newQuantity = suffix ? `${num} ${suffix}` : `${num}`;
+  
+  return updateItem(itemId, { quantity: newQuantity });
+};
+
+// Mark item as consumed (delete it)
+export const consumeItem = async (itemId) => {
+  return deleteItemAPI(itemId);
+};
+
+// Delete an item via backend
 export const deleteItem = async (itemId) => {
-  const items = await getStoredItems();
-  const filtered = items.filter(i => i.id !== itemId);
-  await saveItems(filtered);
+  return deleteItemAPI(itemId);
 };
 
-// Get all items (one-time fetch, not subscription)
+// Get all items (one-time fetch)
 export const getAllItems = async () => {
-  const items = await getStoredItems();
-  return items.map(item => ({
+  const data = await fetchItems();
+  return (data.items || []).map(item => ({
     ...item,
     status: getStatus(item.expiryDate),
   }));

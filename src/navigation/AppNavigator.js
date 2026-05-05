@@ -1,37 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { useTheme } from '../config/ThemeContext';
+import { useAuth } from '../config/AuthContext';
 // Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import RecipesScreen from '../screens/RecipesScreen';
 import PantryScreen from '../screens/PantryScreen';
+import PantryDetailScreen from '../screens/PantryDetailScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AddGroceriesScreen from '../screens/AddGroceriesScreen';
 import CameraScreen from '../screens/CameraScreen';
 import ExpiryScanScreen from '../screens/ExpiryScanScreen';
 import ManualAddScreen from '../screens/ManualAddScreen';
+import TutorialScreen from '../screens/TutorialScreen';
+import SurveyScreen from '../screens/SurveyScreen';
+import RecipeDetailScreen from '../screens/RecipeDetailScreen';
+import { useTutorial } from '../config/TutorialContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const CustomDarkTheme = {
+const getCustomDarkTheme = (theme) => ({
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#2ECC71',
-    background: '#121212',
-    card: '#1E1E1E',
-    text: '#FFFFFF',
-    border: '#333333',
+    primary: theme.primary,
+    background: theme.background,
+    card: theme.card,
+    text: theme.text,
+    border: theme.border,
   },
-};
+});
+
+const getCustomLightTheme = (theme) => ({
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: theme.primary,
+    background: theme.background,
+    card: theme.card,
+    text: theme.text,
+    border: theme.border,
+  },
+});
 
 function MainTabs() {
+  const { theme } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -43,10 +62,10 @@ function MainTabs() {
           else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#2ECC71',
-        tabBarInactiveTintColor: 'gray',
-        headerStyle: { backgroundColor: '#1E1E1E' },
-        headerTintColor: '#fff',
+        tabBarActiveTintColor: theme.navActive,
+        tabBarInactiveTintColor: theme.navInactive,
+        headerStyle: { backgroundColor: theme.navBackground },
+        headerTintColor: theme.navText,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Smart Pantry' }} />
@@ -58,34 +77,35 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const [isFirstLaunch, setIsFirstLaunch] = useState(null);
+  const { theme, isDarkMode } = useTheme();
+  const { currentUser } = useAuth();
+  const { hasSeenTutorial } = useTutorial() || { hasSeenTutorial: true };
 
-  useEffect(() => {
-    AsyncStorage.getItem('alreadyLaunched').then(value => {
-      if (value === null) {
-        AsyncStorage.setItem('alreadyLaunched', 'true');
-        setIsFirstLaunch(true);
-      } else {
-        setIsFirstLaunch(false);
-      }
-    });
-  }, []);
-
-  if (isFirstLaunch === null) {
-    return null; // or a loading splash
+  if (currentUser && hasSeenTutorial === null) {
+    return null; // or a loading spinner while checking async storage
   }
 
   return (
-    <NavigationContainer theme={CustomDarkTheme}>
+    <NavigationContainer theme={isDarkMode ? getCustomDarkTheme(theme) : getCustomLightTheme(theme)}>
       <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'modal' }}>
-        {isFirstLaunch && (
+        {!currentUser ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        ) : !hasSeenTutorial ? (
+          <>
+            <Stack.Screen name="Tutorial" component={TutorialScreen} />
+            <Stack.Screen name="Survey" component={SurveyScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="PantryDetail" component={PantryDetailScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="AddGroceries" component={AddGroceriesScreen} options={{ headerShown: true, title: 'Add Groceries', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
+            <Stack.Screen name="CameraScanner" component={CameraScreen} options={{ headerShown: true, title: 'Scan Barcode', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
+            <Stack.Screen name="ExpiryScan" component={ExpiryScanScreen} options={{ headerShown: true, title: 'Scan Expiry Date', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
+            <Stack.Screen name="ManualAdd" component={ManualAddScreen} options={{ headerShown: true, title: 'Add/Edit Item', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
+          </>
         )}
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="AddGroceries" component={AddGroceriesScreen} options={{ headerShown: true, title: 'Add Groceries' }} />
-        <Stack.Screen name="CameraScanner" component={CameraScreen} options={{ headerShown: true, title: 'Scan Barcode' }} />
-        <Stack.Screen name="ExpiryScan" component={ExpiryScanScreen} options={{ headerShown: true, title: 'Scan Expiry Date' }} />
-        <Stack.Screen name="ManualAdd" component={ManualAddScreen} options={{ headerShown: true, title: 'Add Item Manually' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

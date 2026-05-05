@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../config/ThemeContext';
 
 let Html5Qrcode = null;
 if (Platform.OS === 'web') {
@@ -47,6 +48,7 @@ async function lookupBarcodeAPI(code) {
 }
 
 export default function CameraScreen({ navigation }) {
+  const { theme } = useTheme();
   const [scanning, setScanning] = useState(false);
   const [scannedData, setScannedData] = useState(null);
   const [productInfo, setProductInfo] = useState(null);
@@ -128,18 +130,18 @@ export default function CameraScreen({ navigation }) {
 
   if (Platform.OS !== 'web') {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Ionicons name="camera-outline" size={60} color="#555" />
-        <Text style={styles.errorText}>Camera scanning is available on the web/PWA version.</Text>
-        <TouchableOpacity style={styles.manualBtn} onPress={() => navigation.navigate('ManualAdd')}>
-          <Text style={styles.manualBtnText}>Switch to manual input</Text>
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
+        <Ionicons name="camera-outline" size={60} color={theme.subText} />
+        <Text style={[styles.errorText, { color: theme.subText }]}>Camera scanning is available on the web/PWA version.</Text>
+        <TouchableOpacity style={[styles.manualBtn, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('ManualAdd')}>
+          <Text style={[styles.manualBtnText, { color: theme.primary }]}>Switch to manual input</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Active Scanner */}
       {scanning && !scannedData && (
         <View style={styles.scannerArea}>
@@ -156,9 +158,9 @@ export default function CameraScreen({ navigation }) {
       {/* Error */}
       {error && (
         <View style={styles.centered}>
-          <Ionicons name="alert-circle" size={50} color="#e74c3c" />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => { setError(null); startScanner(); }}>
+          <Ionicons name="alert-circle" size={50} color={theme.danger} />
+          <Text style={[styles.errorText, { color: theme.text }]}>{error}</Text>
+          <TouchableOpacity style={[styles.retryBtn, { backgroundColor: theme.primary }]} onPress={() => { setError(null); startScanner(); }}>
             <Text style={styles.retryBtnText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -167,19 +169,19 @@ export default function CameraScreen({ navigation }) {
       {/* Auto-detected product */}
       {scannedData && (
         <View style={styles.resultContainer}>
-          <Ionicons name="checkmark-circle" size={70} color="#2ECC71" />
-          <Text style={styles.resultTitle}>Barcode Detected!</Text>
-          <Text style={styles.resultCode}>{scannedData}</Text>
+          <Ionicons name="checkmark-circle" size={70} color={theme.safe} />
+          <Text style={[styles.resultTitle, { color: theme.text }]}>Barcode Detected!</Text>
+          <Text style={[styles.resultCode, { color: theme.subText }]}>{scannedData}</Text>
 
           {autoDetecting && !productInfo && (
-            <View style={[styles.productCard, { paddingVertical: 40 }]}>
-              <ActivityIndicator size="large" color="#2ECC71" />
-              <Text style={[styles.autoText, { marginTop: 15 }]}>Fetching product info...</Text>
+            <View style={[styles.productCard, { paddingVertical: 40, backgroundColor: theme.card, borderColor: theme.border }]}>
+              <ActivityIndicator size="large" color={theme.primary} />
+              <Text style={[styles.autoText, { marginTop: 15, color: theme.subText }]}>Fetching product info...</Text>
             </View>
           )}
 
           {productInfo && (
-            <View style={[styles.productCard, productInfo.isUnknown && { borderColor: '#f39c12' }]}>
+            <View style={[styles.productCard, { backgroundColor: theme.card, borderColor: productInfo.isUnknown ? theme.warning : theme.border }]}>
               {productInfo.imageUrl ? (
                 <img 
                   src={productInfo.imageUrl} 
@@ -190,22 +192,22 @@ export default function CameraScreen({ navigation }) {
                 <Ionicons 
                   name={productInfo.isUnknown ? "help-circle" : "cube"} 
                   size={40} 
-                  color={productInfo.isUnknown ? "#f39c12" : "#2ECC71"} 
+                  color={productInfo.isUnknown ? theme.warning : theme.primary} 
                   style={{ marginBottom: 10 }}
                 />
               )}
               
-              <Text style={styles.productName}>{productInfo.name}</Text>
+              <Text style={[styles.productName, { color: theme.text }]}>{productInfo.name}</Text>
               
               {!productInfo.isUnknown && (
                 <View style={styles.badgesRow}>
-                  <Text style={styles.badge}>{productInfo.category}</Text>
-                  {productInfo.quantity && <Text style={styles.badge}>{productInfo.quantity}</Text>}
+                  <Text style={[styles.badge, { backgroundColor: theme.background, color: theme.primary }]}>{productInfo.category}</Text>
+                  {productInfo.quantity && <Text style={[styles.badge, { backgroundColor: theme.background, color: theme.primary }]}>{productInfo.quantity}</Text>}
                 </View>
               )}
 
               {productInfo.isUnknown && (
-                <Text style={[styles.productCategory, { color: '#888', marginTop: 8 }]}>
+                <Text style={[styles.productCategory, { color: theme.subText, marginTop: 8 }]}>
                   Not in global database. You can enter the name on the final step.
                 </Text>
               )}
@@ -214,23 +216,23 @@ export default function CameraScreen({ navigation }) {
 
           {autoDetecting && productInfo && (
             <View style={styles.autoProgress}>
-              <ActivityIndicator size="small" color="#2ECC71" />
-              <Text style={styles.autoText}>  Proceeding to expiry scanner...</Text>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <Text style={[styles.autoText, { color: theme.subText }]}>  Proceeding to expiry scanner...</Text>
             </View>
           )}
         </View>
       )}
 
       {/* Manual fallback */}
-      <TouchableOpacity style={styles.manualBtn} onPress={handleManualSkip}>
-        <Text style={styles.manualBtnText}>Skip — Enter manually instead</Text>
+      <TouchableOpacity style={[styles.manualBtn, { backgroundColor: theme.card }]} onPress={handleManualSkip}>
+        <Text style={[styles.manualBtnText, { color: theme.primary }]}>Skip — Enter manually instead</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   scannerArea: {
     flex: 1, position: 'relative', overflow: 'hidden',
@@ -244,24 +246,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25,
   },
   scanInstruction: { color: '#2ECC71', fontSize: 15, fontWeight: 'bold' },
-  errorText: { color: '#aaa', fontSize: 16, textAlign: 'center', marginTop: 15, paddingHorizontal: 20 },
+  errorText: { fontSize: 16, textAlign: 'center', marginTop: 15, paddingHorizontal: 20 },
   retryBtn: {
-    backgroundColor: '#2ECC71', paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 20,
+    paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 20,
   },
   retryBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   resultContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  resultTitle: { color: '#fff', fontSize: 26, fontWeight: 'bold', marginTop: 15 },
-  resultCode: { color: '#666', fontSize: 13, marginTop: 5, fontFamily: 'monospace' },
+  resultTitle: { fontSize: 26, fontWeight: 'bold', marginTop: 15 },
+  resultCode: { fontSize: 13, marginTop: 5, fontFamily: 'monospace' },
   productCard: {
-    backgroundColor: '#1E1E1E', padding: 25, borderRadius: 15, width: '100%',
-    marginTop: 25, alignItems: 'center', borderWidth: 1, borderColor: '#2ECC7133',
+    padding: 25, borderRadius: 15, width: '100%',
+    marginTop: 25, alignItems: 'center', borderWidth: 1,
   },
-  productName: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
-  productCategory: { color: '#2ECC71', fontSize: 15, marginTop: 8 },
+  productName: { fontSize: 22, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
+  productCategory: { fontSize: 15, marginTop: 8 },
   badgesRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'center', flexWrap: 'wrap' },
-  badge: { backgroundColor: '#2a2a1e', color: '#2ECC71', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, fontSize: 13, overflow: 'hidden' },
+  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, fontSize: 13, overflow: 'hidden' },
   autoProgress: { flexDirection: 'row', alignItems: 'center', marginTop: 25 },
-  autoText: { color: '#888', fontSize: 14 },
-  manualBtn: { padding: 18, alignItems: 'center', backgroundColor: '#1a1a1a' },
-  manualBtnText: { color: '#2ECC71', fontSize: 16, textDecorationLine: 'underline' },
+  autoText: { fontSize: 14 },
+  manualBtn: { padding: 18, alignItems: 'center' },
+  manualBtnText: { fontSize: 16, textDecorationLine: 'underline' },
 });
