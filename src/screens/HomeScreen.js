@@ -6,6 +6,8 @@ import { getRecommendation, suggestRecipe } from '../services/ai';
 import { useTheme } from '../config/ThemeContext';
 import { useTutorial } from '../config/TutorialContext';
 import { checkAndNotify } from '../services/notifications';
+import { PantryItemSkeleton, SummaryCardSkeleton } from '../components/Skeleton';
+import TourTarget from '../components/TourTarget';
 
 const getGradeColor = (grade) => {
   switch ((grade || '').toLowerCase()) {
@@ -214,7 +216,7 @@ export default function HomeScreen({ navigation }) {
         )}
 
         {/* Summary Cards */}
-        <View style={styles.summaryRow}>
+        <TourTarget id="home-summary" style={styles.summaryRow}>
           <View style={[styles.summaryCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
             <View style={[styles.summaryIcon, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name="basket" size={18} color={theme.primaryDeep} />
@@ -236,7 +238,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={[styles.summaryNumber, { color: theme.text }]}>{expiredCount}</Text>
             <Text style={[styles.summaryLabel, { color: theme.subText }]}>Expired</Text>
           </View>
-        </View>
+        </TourTarget>
 
         {/* AI Recommendation */}
         {aiRec && (
@@ -299,19 +301,21 @@ export default function HomeScreen({ navigation }) {
             YOUR PANTRY {filteredItems.length !== items.length ? `(${filteredItems.length}/${items.length})` : items.length > 0 ? `(${items.length})` : ''}
           </Text>
           {items.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setShowFilters(s => !s)}
-              style={[
-                styles.filterToggle,
-                { backgroundColor: filtersActive ? theme.primarySoft : theme.surface, borderColor: filtersActive ? theme.primary : theme.border },
-              ]}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="options-outline" size={14} color={filtersActive ? theme.primaryDeep : theme.subText} />
-              <Text style={[styles.filterToggleText, { color: filtersActive ? theme.primaryDeep : theme.subText }]}>
-                {showFilters ? 'Hide' : 'Filter'}
-              </Text>
-            </TouchableOpacity>
+            <TourTarget id="home-filter">
+              <TouchableOpacity
+                onPress={() => setShowFilters(s => !s)}
+                style={[
+                  styles.filterToggle,
+                  { backgroundColor: filtersActive ? theme.primarySoft : theme.surface, borderColor: filtersActive ? theme.primary : theme.border },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="options-outline" size={14} color={filtersActive ? theme.primaryDeep : theme.subText} />
+                <Text style={[styles.filterToggleText, { color: filtersActive ? theme.primaryDeep : theme.subText }]}>
+                  {showFilters ? 'Hide' : 'Filter'}
+                </Text>
+              </TouchableOpacity>
+            </TourTarget>
           )}
         </View>
 
@@ -445,15 +449,29 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {items.length === 0 && !loading ? (
+        {loading ? (
+          <View>
+            <PantryItemSkeleton />
+            <PantryItemSkeleton />
+            <PantryItemSkeleton />
+          </View>
+        ) : items.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={[styles.emptyIconBg, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name="basket-outline" size={56} color={theme.primary} />
             </View>
             <Text style={[styles.emptyTitle, { color: theme.text, fontSize: isOlderUser ? 22 : 20 }]}>No pantry items yet</Text>
             <Text style={[styles.emptySubtitle, { color: theme.subText, fontSize: baseFontSize }]}>
-              Tap the + button to add your first item
+              Tap below to add your first item
             </Text>
+            <TouchableOpacity
+              style={[styles.emptyCtaBtn, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
+              onPress={() => navigation.navigate('AddGroceries')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.emptyCtaText}>Add Your First Item</Text>
+            </TouchableOpacity>
           </View>
         ) : filteredItems.length === 0 ? (
           <View style={styles.emptyState}>
@@ -478,20 +496,28 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
-        onPress={() => navigation.navigate('AddGroceries')}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+      <TourTarget id="home-fab" style={styles.fabWrap}>
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
+          onPress={() => navigation.navigate('AddGroceries')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      </TourTarget>
 
-      {/* Detail Modal */}
-      <Modal visible={showDetail} transparent animationType="fade" onRequestClose={() => setShowDetail(false)}>
-        <View style={[styles.modalOverlay, { backgroundColor: theme.modalOverlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+      {/* Detail Sheet (bottom-up) */}
+      <Modal visible={showDetail} transparent animationType="slide" onRequestClose={() => setShowDetail(false)}>
+        <TouchableOpacity
+          style={[styles.sheetOverlay, { backgroundColor: theme.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setShowDetail(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={[styles.sheetContent, { backgroundColor: theme.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
             {selectedItem && (
-              <View>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '90%' }}>
                 <TouchableOpacity
                   style={[styles.closeBtn, { backgroundColor: theme.surface }]}
                   onPress={() => setShowDetail(false)}
@@ -632,10 +658,12 @@ export default function HomeScreen({ navigation }) {
                     <Text style={[styles.editText, { color: theme.text }]}>Edit Details</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+                <View style={{ height: 12 }} />
+              </ScrollView>
             )}
-          </View>
-        </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -771,6 +799,13 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontWeight: '800' },
   emptySubtitle: { marginTop: 8, textAlign: 'center', lineHeight: 20 },
+  emptyCtaBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 18, paddingHorizontal: 20, paddingVertical: 12,
+    borderRadius: 14,
+    elevation: 4, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8,
+  },
+  emptyCtaText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
 
   card: {
     marginHorizontal: 14, borderRadius: 16, marginBottom: 10,
@@ -800,16 +835,26 @@ const styles = StyleSheet.create({
   },
   expiryText: { fontWeight: '700' },
 
+  fabWrap: {
+    position: 'absolute', bottom: 25, right: 20,
+  },
   fab: {
-    position: 'absolute', bottom: 25, right: 20, width: 60, height: 60,
+    width: 60, height: 60,
     borderRadius: 30, justifyContent: 'center', alignItems: 'center',
     elevation: 8,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 8,
   },
 
-  modalOverlay: { flex: 1, justifyContent: 'center', padding: 20 },
-  modalContent: { borderRadius: 24, padding: 22, elevation: 10 },
+  sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
+  sheetContent: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: 22, paddingTop: 8, paddingBottom: 28,
+    elevation: 10, maxHeight: '85%',
+  },
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14, marginTop: 4,
+  },
   closeBtn: {
     alignSelf: 'flex-end', width: 34, height: 34, borderRadius: 17,
     justifyContent: 'center', alignItems: 'center',

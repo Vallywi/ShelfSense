@@ -134,8 +134,16 @@ export default function RecipesScreen({ navigation }) {
           </View>
           <Text style={[styles.emptyTitle, { color: theme.text }]}>Your pantry is empty</Text>
           <Text style={[styles.emptySubtitle, { color: theme.subText }]}>
-            Add pantry items to unlock smart recipe suggestions
+            Add items to unlock smart recipe suggestions
           </Text>
+          <TouchableOpacity
+            style={[styles.emptyCta, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
+            onPress={() => navigation.navigate('AddGroceries')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.emptyCtaText}>Add Items</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.emptyState}>
@@ -212,4 +220,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 19, fontWeight: '800' },
   emptySubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 },
+  emptyCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 18, paddingHorizontal: 20, paddingVertical: 12,
+    borderRadius: 14,
+    elevation: 4, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8,
+  },
+  emptyCtaText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
 });

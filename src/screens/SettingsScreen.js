@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../config/ThemeContext';
 import { useAuth } from '../config/AuthContext';
+import { useToast } from '../config/ToastContext';
 import { updateUserProfile } from '../services/api';
 import {
   notificationsSupported,
@@ -18,6 +19,7 @@ import {
 export default function SettingsScreen({ navigation }) {
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const { currentUser, signOut } = useAuth();
+  const { showToast } = useToast();
   const [notifications, setNotifications] = useState(true);
   const [notifPermission, setNotifPermission] = useState('default');
   const [userProfile, setUserProfile] = useState(null);
@@ -79,7 +81,10 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleUpdateProfile = async () => {
-    if (!editName) return alert('Name is required');
+    if (!editName) {
+      showToast('Name is required', 'warning');
+      return;
+    }
     setSaving(true);
     try {
       const updates = {
@@ -91,9 +96,9 @@ export default function SettingsScreen({ navigation }) {
 
       await updateUserProfile(updates);
       setShowEditModal(false);
-      alert('Profile updated successfully!');
+      showToast('Profile updated', 'success');
     } catch (e) {
-      alert(e.message);
+      showToast(e.message || 'Failed to update profile', 'error');
     } finally {
       setSaving(false);
     }
@@ -216,7 +221,10 @@ export default function SettingsScreen({ navigation }) {
           </View>
           <Switch
             value={isDarkMode}
-            onValueChange={toggleTheme}
+            onValueChange={() => {
+              toggleTheme();
+              showToast(isDarkMode ? 'Light mode on' : 'Dark mode on', 'info', 1500);
+            }}
             trackColor={{ false: theme.border, true: theme.primary }}
             thumbColor={isDarkMode ? theme.cardElevated : '#FFFFFF'}
             ios_backgroundColor={theme.border}

@@ -192,6 +192,24 @@ export default function PantryScreen({ navigation }) {
             <Text style={[styles.emptySubtitle, { color: theme.subText }]}>
               Create a private pantry or join one with an invite code
             </Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                style={[styles.emptyCtaPrimary, { backgroundColor: theme.primaryDeep }]}
+                onPress={() => { setError(''); setShowCreateModal(true); }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add" size={16} color="#FFFFFF" />
+                <Text style={styles.emptyCtaPrimaryText}>Create</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.emptyCtaSecondary, { borderColor: theme.primary, backgroundColor: theme.primarySoft }]}
+                onPress={() => { setError(''); setShowJoinModal(true); }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="people-outline" size={16} color={theme.primaryDeep} />
+                <Text style={[styles.emptyCtaSecondaryText, { color: theme.primaryDeep }]}>Join</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -346,6 +364,17 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 20, fontWeight: '800', marginTop: 4 },
   emptySubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 },
+  emptyCtaPrimary: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
+  },
+  emptyCtaPrimaryText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
+  emptyCtaSecondary: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  emptyCtaSecondaryText: { fontWeight: '700', fontSize: 14 },
 
   actions: { padding: 16, gap: 12 },
   primaryBtn: {

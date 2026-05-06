@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { addItem, updateItem } from '../services/firestore';
 import { predictExpiry, getStatus } from '../services/ai';
 import { useTheme } from '../config/ThemeContext';
+import { useToast } from '../config/ToastContext';
 
 const CATEGORIES = [
   { label: 'Fresh Produce', icon: 'leaf' },
@@ -53,6 +54,7 @@ export default function ManualAddScreen({ navigation, route }) {
   }
 
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const editMode = route.params?.editMode || false;
   const itemId = route.params?.itemId || null;
 
@@ -134,6 +136,7 @@ export default function ManualAddScreen({ navigation, route }) {
 
       setLoading(false);
       setSaved(true);
+      showToast(editMode ? 'Item updated' : `${name.trim()} added to pantry`, 'success');
 
       setTimeout(() => {
         navigation.navigate('Main');
@@ -141,7 +144,7 @@ export default function ManualAddScreen({ navigation, route }) {
     } catch (error) {
       setLoading(false);
       console.error('Save error:', error);
-      Alert.alert('Error', 'Failed to save item. Please try again.');
+      showToast('Failed to save item — please try again', 'error');
     }
   };
 

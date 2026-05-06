@@ -45,21 +45,24 @@ export default function RegisterScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-
-        <View style={[styles.logoCircle, { backgroundColor: theme.accentSoft }]}>
-          <Ionicons name="person-add" size={32} color={theme.accentDeep} />
+        <View style={styles.hero}>
+          <View style={[styles.heroBackdrop, { backgroundColor: theme.primarySoft }]} />
+          <View style={[styles.heroAccent, { backgroundColor: theme.accentSoft }]} />
+          <View style={[styles.heroLogo, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}>
+            <Ionicons name="leaf" size={28} color="#FFFFFF" />
+          </View>
+          <View style={[styles.heroBadgeTopLeft, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="basket" size={12} color={theme.primaryDeep} />
+          </View>
+          <View style={[styles.heroBadgeBottomRight, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="sparkles" size={12} color={theme.accentDeep} />
+          </View>
         </View>
 
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: theme.subText }]}>Start tracking your pantry today</Text>
+          <Text style={[styles.brandLabel, { color: theme.primaryDeep }]}>SHELFSENSE</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Join us</Text>
+          <Text style={[styles.subtitle, { color: theme.subText }]}>Create an account to start tracking</Text>
         </View>
 
         {error ? (
@@ -136,12 +139,12 @@ export default function RegisterScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.loginRow}
+            style={[styles.loginRow, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.7}
+            activeOpacity={0.85}
           >
             <Text style={[styles.loginText, { color: theme.subText }]}>
-              Already have an account? <Text style={[styles.loginLink, { color: theme.primaryDeep }]}>Sign in</Text>
+              Already a member? <Text style={[styles.loginLink, { color: theme.primaryDeep }]}>Log in</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -153,21 +156,35 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { flexGrow: 1, paddingHorizontal: 28, justifyContent: 'center', paddingTop: 70, paddingBottom: 40 },
+  scroll: { flexGrow: 1, paddingHorizontal: 28, justifyContent: 'center', paddingTop: 50, paddingBottom: 40 },
 
-  backButton: {
-    position: 'absolute', top: 50, left: 20,
-    width: 40, height: 40, borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1,
+  hero: {
+    width: 110, height: 110, alignSelf: 'center', marginBottom: 18,
+    position: 'relative',
   },
-
-  logoCircle: {
-    width: 70, height: 70, borderRadius: 22,
-    justifyContent: 'center', alignItems: 'center',
-    alignSelf: 'center', marginBottom: 20,
+  heroBackdrop: {
+    position: 'absolute', top: 8, left: 8, width: 94, height: 94, borderRadius: 28,
+    transform: [{ rotate: '-8deg' }],
   },
-  header: { alignItems: 'center', marginBottom: 26 },
+  heroAccent: {
+    position: 'absolute', top: 0, right: 0, width: 60, height: 60, borderRadius: 22,
+    transform: [{ rotate: '10deg' }],
+  },
+  heroLogo: {
+    position: 'absolute', top: 18, left: 22, width: 68, height: 68, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center',
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+  },
+  heroBadgeTopLeft: {
+    position: 'absolute', top: 2, left: 0, width: 28, height: 28, borderRadius: 10,
+    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
+  },
+  heroBadgeBottomRight: {
+    position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: 10,
+    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
+  },
+  brandLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 2.5, marginBottom: 8 },
+  header: { alignItems: 'center', marginBottom: 24 },
   title: { fontSize: 28, fontWeight: '800', marginBottom: 8, letterSpacing: 0.3 },
   subtitle: { fontSize: 14, fontWeight: '500' },
 
@@ -186,14 +203,16 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, fontWeight: '500' },
 
   registerBtn: {
-    height: 56, borderRadius: 14,
-    justifyContent: 'center', alignItems: 'center', marginTop: 14,
-    elevation: 5,
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10,
+    height: 54, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center', marginTop: 12,
+    elevation: 5, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10,
   },
   registerBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
 
-  loginRow: { alignItems: 'center', marginTop: 18 },
-  loginText: { fontSize: 13, fontWeight: '500' },
+  loginRow: {
+    alignItems: 'center', paddingVertical: 14, marginTop: 6,
+    borderRadius: 14, borderWidth: 1,
+  },
+  loginText: { fontSize: 14, fontWeight: '500' },
   loginLink: { fontWeight: '700' },
 });

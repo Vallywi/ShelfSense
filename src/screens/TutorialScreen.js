@@ -1,168 +1,155 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated } from 'react-native';
+import React from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../config/ThemeContext';
+import { useTour } from '../config/TourContext';
+import { useTutorial } from '../config/TutorialContext';
 
-const SLIDES = [
-  {
-    title: 'Track Your Pantry',
-    text: 'Keep all your groceries organized in one beautiful place',
-    icon: 'file-tray-full-outline',
-    accentKey: 'primary',
-  },
-  {
-    title: 'Avoid Food Waste',
-    text: 'Get gentle reminders before your food expires',
-    icon: 'notifications-outline',
-    accentKey: 'warning',
-  },
-  {
-    title: 'Shop Smarter',
-    text: 'Make better decisions with smart pantry insights',
-    icon: 'stats-chart-outline',
-    accentKey: 'accent',
-  },
-];
-
-const getAccent = (theme, key) => {
-  if (key === 'primary') return { color: theme.primaryDeep, bg: theme.primarySoft };
-  if (key === 'warning') return { color: theme.warning, bg: theme.warningSoft };
-  if (key === 'accent') return { color: theme.accentDeep, bg: theme.accentSoft };
-  return { color: theme.primaryDeep, bg: theme.primarySoft };
-};
-
+/**
+ * Optional tour launcher screen — shown after Survey on first login,
+ * or accessed via Settings → Replay Tutorial.
+ *
+ * Lets the user choose: take the interactive tour, or skip and dive in.
+ */
 export default function TutorialScreen({ navigation, route }) {
   const { theme } = useTheme();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const tour = useTour();
+  const tutorial = useTutorial();
 
   const fromSettings = route?.params?.fromSettings;
 
-  const animateTransition = (cb) => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
-    setTimeout(cb, 150);
-  };
-
-  const handleSkip = () => {
+  const handleStartTour = async () => {
+    if (!fromSettings && tutorial?.completeTutorial) {
+      await tutorial.completeTutorial();
+    }
+    if (fromSettings && tour?.resetTourCompletion) {
+      await tour.resetTourCompletion();
+    }
+    tour?.startTour();
     if (fromSettings) {
       navigation.goBack();
-    } else {
-      navigation.navigate('Survey');
     }
   };
 
-  const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
-      animateTransition(() => setCurrentIndex(i => i + 1));
-    } else {
-      if (fromSettings) {
-        navigation.goBack();
-      } else {
-        navigation.navigate('Survey');
-      }
+  const handleSkip = async () => {
+    if (!fromSettings && tutorial?.completeTutorial) {
+      await tutorial.completeTutorial();
+    }
+    if (fromSettings) {
+      navigation.goBack();
     }
   };
 
-  const slide = SLIDES[currentIndex];
-  const accent = getAccent(theme, slide.accentKey);
-  const isLastSlide = currentIndex === SLIDES.length - 1;
+  const features = [
+    { icon: 'basket', label: 'Pantry status at a glance', color: theme.primaryDeep },
+    { icon: 'add-circle', label: 'Quick add via barcode or AI', color: theme.accentDeep },
+    { icon: 'sparkles', label: 'Chef Sage AI assistant', color: theme.primaryDeep },
+    { icon: 'people', label: 'Shared pantries with family', color: theme.accentDeep },
+  ];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.logo, { color: theme.primaryDeep }]}>ShelfSense</Text>
-        <TouchableOpacity onPress={handleSkip} activeOpacity={0.7}>
-          <Text style={[styles.skipText, { color: theme.subText }]}>Skip</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-      <Animated.View style={[styles.slideContainer, { opacity: fadeAnim }]}>
-        <View style={[styles.iconCircle, { backgroundColor: accent.bg, borderColor: accent.color + '33' }]}>
-          <View style={[styles.iconInner, { backgroundColor: theme.card }]}>
-            <Ionicons name={slide.icon} size={64} color={accent.color} />
+        <View style={styles.hero}>
+          <View style={[styles.heroBackdrop, { backgroundColor: theme.primarySoft }]} />
+          <View style={[styles.heroAccent, { backgroundColor: theme.accentSoft }]} />
+          <View style={[styles.heroLogo, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}>
+            <Ionicons name="rocket" size={32} color="#FFFFFF" />
           </View>
         </View>
 
-        <View style={[styles.slideNumber, { backgroundColor: accent.bg }]}>
-          <Text style={[styles.slideNumberText, { color: accent.color }]}>
-            {currentIndex + 1} of {SLIDES.length}
-          </Text>
-        </View>
+        <Text style={[styles.brandLabel, { color: theme.primaryDeep }]}>QUICK TOUR</Text>
+        <Text style={[styles.title, { color: theme.text }]}>
+          {fromSettings ? 'Replay the tour' : "You're all set!"}
+        </Text>
+        <Text style={[styles.subtitle, { color: theme.subText }]}>
+          Want a quick walkthrough of the main features? It takes about a minute, and you can skip any time.
+        </Text>
 
-        <Text style={[styles.title, { color: theme.text }]}>{slide.title}</Text>
-        <Text style={[styles.text, { color: theme.subText }]}>{slide.text}</Text>
-      </Animated.View>
-
-      <View style={styles.footer}>
-        <View style={styles.dotsContainer}>
-          {SLIDES.map((s, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => animateTransition(() => setCurrentIndex(index))}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: theme.border },
-                  currentIndex === index && { backgroundColor: accent.color, width: 28 },
-                ]}
-              />
-            </TouchableOpacity>
+        <View style={[styles.featureCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
+          <Text style={[styles.featureLabel, { color: theme.subText }]}>WHAT YOU'LL SEE</Text>
+          {features.map((f) => (
+            <View key={f.label} style={styles.featureRow}>
+              <View style={[styles.featureIcon, { backgroundColor: f.color + '22' }]}>
+                <Ionicons name={f.icon} size={16} color={f.color} />
+              </View>
+              <Text style={[styles.featureText, { color: theme.text }]}>{f.label}</Text>
+            </View>
           ))}
         </View>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: accent.color, shadowColor: accent.color }]}
-          onPress={handleNext}
+          style={[styles.primaryBtn, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
+          onPress={handleStartTour}
           activeOpacity={0.85}
         >
-          <Text style={styles.buttonText}>
-            {isLastSlide ? 'Get Started' : 'Next'}
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          <Ionicons name="play" size={16} color="#FFFFFF" />
+          <Text style={styles.primaryBtnText}>Take the Tour</Text>
         </TouchableOpacity>
-      </View>
+
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          onPress={handleSkip}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.secondaryBtnText, { color: theme.subText }]}>
+            {fromSettings ? 'Cancel' : "Skip — I'll explore on my own"}
+          </Text>
+        </TouchableOpacity>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8,
-  },
-  logo: { fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
-  skipText: { fontSize: 14, fontWeight: '600' },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 30, paddingBottom: 40, alignItems: 'center' },
 
-  slideContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
-  iconCircle: {
-    width: 190, height: 190, borderRadius: 95,
-    borderWidth: 1.5,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 18,
+  hero: { width: 140, height: 140, marginBottom: 16, position: 'relative' },
+  heroBackdrop: {
+    position: 'absolute', top: 12, left: 12, width: 120, height: 120, borderRadius: 32,
+    transform: [{ rotate: '-8deg' }],
   },
-  iconInner: {
-    width: 140, height: 140, borderRadius: 70,
+  heroAccent: {
+    position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: 26,
+    transform: [{ rotate: '10deg' }],
+  },
+  heroLogo: {
+    position: 'absolute', top: 25, left: 30, width: 84, height: 84, borderRadius: 26,
+    justifyContent: 'center', alignItems: 'center',
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+  },
+
+  brandLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 2.5, marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: '800', textAlign: 'center', marginBottom: 10, letterSpacing: 0.3 },
+  subtitle: {
+    fontSize: 14, textAlign: 'center', lineHeight: 21, fontWeight: '500',
+    marginBottom: 26, paddingHorizontal: 10,
+  },
+
+  featureCard: {
+    width: '100%', padding: 16, borderRadius: 18, borderWidth: 1, marginBottom: 24,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+  },
+  featureLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 12 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 7 },
+  featureIcon: {
+    width: 32, height: 32, borderRadius: 11,
     justifyContent: 'center', alignItems: 'center',
   },
-  slideNumber: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, marginBottom: 20 },
-  slideNumberText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  featureText: { fontSize: 14, fontWeight: '600', flex: 1 },
 
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 14, textAlign: 'center', letterSpacing: 0.3 },
-  text: { fontSize: 16, textAlign: 'center', lineHeight: 24, paddingHorizontal: 10, fontWeight: '500' },
-
-  footer: { paddingHorizontal: 30, paddingBottom: 50 },
-  dotsContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24, gap: 8 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-
-  button: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
-    paddingVertical: 17, borderRadius: 16,
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+  primaryBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    width: '100%', paddingVertical: 16, borderRadius: 14,
+    elevation: 5, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
   },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  primaryBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
+  secondaryBtn: { paddingVertical: 14, marginTop: 8 },
+  secondaryBtnText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
 });

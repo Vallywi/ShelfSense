@@ -24,7 +24,10 @@ import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ChefAssistantScreen from '../screens/ChefAssistantScreen';
+import AnimatedTabBar from '../components/AnimatedTabBar';
+import TourOverlay from '../components/TourOverlay';
 import { useTutorial } from '../config/TutorialContext';
+import { useTour } from '../config/TourContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -79,8 +82,26 @@ function ChefTabButton({ children, onPress, accessibilityState }) {
 
 function MainTabs() {
   const { theme } = useTheme();
+  const tour = useTour();
+  const navRef = React.useRef(null);
+
+  // When the tour requests a tab switch, navigate to it
+  React.useEffect(() => {
+    if (tour?.tabSwitchRequest && navRef.current) {
+      navRef.current.navigate(tour.tabSwitchRequest);
+      tour.consumeTabSwitch();
+    }
+  }, [tour?.tabSwitchRequest, tour]);
+
   return (
     <Tab.Navigator
+      tabBar={(props) => {
+        // Capture navigation ref via tabBar
+        if (props.navigation && !navRef.current) {
+          navRef.current = props.navigation;
+        }
+        return <AnimatedTabBar {...props} />;
+      }}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -95,25 +116,6 @@ function MainTabs() {
         },
         tabBarActiveTintColor: theme.navActive,
         tabBarInactiveTintColor: theme.navInactive,
-        tabBarStyle: {
-          backgroundColor: theme.navBackground,
-          borderTopColor: theme.divider,
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 84 : 64,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: theme.isDark ? 0.3 : 0.06,
-          shadowRadius: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-          letterSpacing: 0.3,
-          marginTop: 2,
-        },
         headerStyle: {
           backgroundColor: theme.navBackground,
           borderBottomColor: theme.divider,
@@ -178,6 +180,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer theme={isDarkMode ? getCustomDarkTheme(theme) : getCustomLightTheme(theme)}>
+      <View style={{ flex: 1 }}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!currentUser ? (
           <>
@@ -243,6 +246,8 @@ export default function AppNavigator() {
           </>
         )}
       </Stack.Navigator>
+      <TourOverlay />
+      </View>
     </NavigationContainer>
   );
 }

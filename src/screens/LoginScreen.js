@@ -40,11 +40,23 @@ export default function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        <View style={[styles.logoCircle, { backgroundColor: theme.primarySoft }]}>
-          <Ionicons name="leaf" size={36} color={theme.primaryDeep} />
+        {/* Hero block */}
+        <View style={styles.hero}>
+          <View style={[styles.heroBackdrop, { backgroundColor: theme.primarySoft }]} />
+          <View style={[styles.heroAccent, { backgroundColor: theme.accentSoft }]} />
+          <View style={[styles.heroLogo, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}>
+            <Ionicons name="leaf" size={32} color="#FFFFFF" />
+          </View>
+          <View style={[styles.heroBadgeTopLeft, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="basket" size={14} color={theme.primaryDeep} />
+          </View>
+          <View style={[styles.heroBadgeBottomRight, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="sparkles" size={14} color={theme.accentDeep} />
+          </View>
         </View>
 
         <View style={styles.header}>
+          <Text style={[styles.brandLabel, { color: theme.primaryDeep }]}>SHELFSENSE</Text>
           <Text style={[styles.title, { color: theme.text }]}>Welcome back</Text>
           <Text style={[styles.subtitle, { color: theme.subText }]}>Sign in to access your pantry</Text>
         </View>
@@ -144,10 +156,33 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 28, justifyContent: 'center', paddingTop: 60, paddingBottom: 40 },
 
-  logoCircle: {
-    width: 76, height: 76, borderRadius: 24,
+  hero: {
+    width: 130, height: 130, alignSelf: 'center', marginBottom: 22,
+    position: 'relative',
+  },
+  heroBackdrop: {
+    position: 'absolute', top: 10, left: 10, width: 110, height: 110, borderRadius: 32,
+    transform: [{ rotate: '-8deg' }],
+  },
+  heroAccent: {
+    position: 'absolute', top: 0, right: 0, width: 70, height: 70, borderRadius: 24,
+    transform: [{ rotate: '10deg' }],
+  },
+  heroLogo: {
+    position: 'absolute', top: 20, left: 25, width: 80, height: 80, borderRadius: 24,
     justifyContent: 'center', alignItems: 'center',
-    alignSelf: 'center', marginBottom: 24,
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+  },
+  heroBadgeTopLeft: {
+    position: 'absolute', top: 4, left: 0, width: 32, height: 32, borderRadius: 12,
+    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
+  },
+  heroBadgeBottomRight: {
+    position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: 12,
+    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
+  },
+  brandLabel: {
+    fontSize: 11, fontWeight: '800', letterSpacing: 2.5, marginBottom: 8,
   },
   header: { alignItems: 'center', marginBottom: 32 },
   title: { fontSize: 30, fontWeight: '800', marginBottom: 8, letterSpacing: 0.3 },
