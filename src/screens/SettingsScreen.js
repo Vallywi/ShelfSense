@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Switch, TouchableOpacity,
-  ScrollView, Alert, Platform,
+  ScrollView, Alert, Platform, Modal, TextInput
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../config/ThemeContext';
 import { useAuth } from '../config/AuthContext';
+import { updateUserProfile } from '../services/api';
 
 export default function SettingsScreen({ navigation }) {
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const { currentUser, signOut } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editAge, setEditAge] = useState('');
+  const [editGender, setEditGender] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem('appNotifications').then(val => {
@@ -49,6 +56,36 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
+  const handleUpdateProfile = async () => {
+    if (!editName) return alert('Name is required');
+    setSaving(true);
+    try {
+      const updates = { 
+        name: editName, 
+        age: editAge, 
+        gender: editGender 
+      };
+      if (editPassword) updates.password = editPassword;
+      
+      await updateUserProfile(updates);
+      setShowEditModal(false);
+      alert('Profile updated successfully!');
+      // Reload or update context if needed (useAuth usually handles state)
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditModal = () => {
+    setEditName(currentUser?.name || '');
+    setEditAge(String(currentUser?.age || ''));
+    setEditGender(currentUser?.gender || '');
+    setEditPassword('');
+    setShowEditModal(true);
+  };
+
   // Derive display name / initials from user info
   const displayName = currentUser?.name || '';
   const email = currentUser?.email || '';
@@ -61,7 +98,11 @@ export default function SettingsScreen({ navigation }) {
       <Text style={[styles.pageTitle, { color: theme.text }]}>Settings</Text>
 
       {/* ── Account Card ── */}
-      <View style={[styles.accountCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <TouchableOpacity 
+        style={[styles.accountCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+        onPress={openEditModal}
+        activeOpacity={0.9}
+      >
         {/* Avatar */}
         <View style={[styles.avatarCircle, { backgroundColor: theme.primary + '22' }]}>
           <Text style={[styles.avatarInitials, { color: theme.primary }]}>{initials}</Text>
@@ -93,12 +134,11 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
-        {/* Log Out button inline */}
-        <TouchableOpacity style={[styles.signOutChip, { borderColor: theme.danger || '#e74c3c' }]} onPress={handleSignOut} activeOpacity={0.75}>
-          <Ionicons name="log-out-outline" size={15} color={theme.danger || '#e74c3c'} />
-          <Text style={[styles.signOutChipText, { color: theme.danger || '#e74c3c' }]}>Log Out</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Edit Hint */}
+        <View style={{ padding: 4 }}>
+          <Ionicons name="create-outline" size={20} color={theme.primary} />
+        </View>
+      </TouchableOpacity>
 
       {/* ── Settings label ── */}
       <Text style={[styles.sectionLabel, { color: theme.subText }]}>PREFERENCES</Text>
@@ -191,6 +231,77 @@ export default function SettingsScreen({ navigation }) {
 
       <Text style={[styles.version, { color: theme.subText }]}>ShelfSense v1.0.0</Text>
       <View style={{ height: 48 }} />
+
+      {/* ── Edit Profile Modal ── */}
+      <Modal visible={showEditModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Profile</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.subText }]}>Full Name</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Enter your name"
+                  placeholderTextColor={theme.subText}
+                />
+              </View>
+
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={[styles.inputLabel, { color: theme.subText }]}>Age</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                    value={editAge}
+                    onChangeText={setEditAge}
+                    keyboardType="numeric"
+                    placeholder="e.g. 25"
+                    placeholderTextColor={theme.subText}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={[styles.inputLabel, { color: theme.subText }]}>Gender</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                    value={editGender}
+                    onChangeText={setEditGender}
+                    placeholder="e.g. Male"
+                    placeholderTextColor={theme.subText}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.subText }]}>New Password (Optional)</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={editPassword}
+                  onChangeText={setEditPassword}
+                  secureTextEntry
+                  placeholder="Leave blank to keep current"
+                  placeholderTextColor={theme.subText}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: theme.primary }]}
+                onPress={handleUpdateProfile}
+                disabled={saving}
+              >
+                <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -334,4 +445,16 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontSize: 12,
   },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
+  modalContent: { borderRadius: 25, padding: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '800' },
+  inputGroup: { marginBottom: 16 },
+  inputRow: { flexDirection: 'row', gap: 12 },
+  inputLabel: { fontSize: 12, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },
+  input: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 15, fontSize: 16 },
+  saveBtn: { height: 55, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

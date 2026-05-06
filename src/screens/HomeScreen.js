@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, Platform, Image, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { subscribeToItems, deleteItem, updateItemQuantity, consumeItem } from '../services/firestore';
-import { getRecommendation } from '../services/ai';
+import { getRecommendation, suggestRecipe } from '../services/ai';
 import { useTheme } from '../config/ThemeContext';
 import { useTutorial } from '../config/TutorialContext';
 
@@ -47,9 +47,17 @@ function getRecipeSuggestion(items) {
 function getAIRecommendation(items) {
   const urgent = items.find(i => i.status === 'urgent' || i.status === 'expired');
   const soon = items.find(i => i.status === 'soon');
-  if (urgent) return { text: `Use your ${urgent.name} today — it's expiring very soon!`, icon: 'flame-outline', color: '#e74c3c' };
-  if (soon) return { text: `Plan a meal with ${soon.name} this week.`, icon: 'restaurant-outline', color: '#f39c12' };
-  if (items.length > 0) return { text: 'Your pantry looks healthy! Keep tracking items.', icon: 'leaf-outline', color: '#27ae60' };
+  
+  if (items.length > 0) {
+    const recipe = suggestRecipe(items);
+    return { 
+      text: recipe, 
+      icon: 'restaurant-outline', 
+      color: urgent ? '#e74c3c' : (soon ? '#f39c12' : '#27ae60'),
+      isRecipe: true 
+    };
+  }
+  
   return null;
 }
 
@@ -60,6 +68,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [notifiedItems, setNotifiedItems] = useState(new Set());
 
   // Personalization: larger fonts for older users
   const isOlderUser = userProfile && parseInt(userProfile.age) >= 50;
@@ -76,42 +85,53 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const checkNotifications = async (fetchedItems) => {
-    if (Platform.OS !== 'web') return;
-    if (!("Notification" in window)) return;
-    try {
-      if (Notification.permission === "default") await Notification.requestPermission();
-      if (Notification.permission === "granted") {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const notifiedKeysStr = await AsyncStorage.getItem('notified_items');
-        const notifiedKeys = notifiedKeysStr ? JSON.parse(notifiedKeysStr) : {};
-        let updatedKeys = { ...notifiedKeys };
-        const today = new Date();
-        let changed = false;
-        fetchedItems.forEach(item => {
-          if (!item.expiryDate) return;
-          const expDate = new Date(item.expiryDate);
-          const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-          let alertLevel = null;
-          if (diffDays === 1) alertLevel = '1_day';
-          else if (diffDays === 3) alertLevel = '3_days';
-          else if (diffDays <= 0) alertLevel = 'expired';
-          if (alertLevel) {
-            const notifKey = `${item.id}_${alertLevel}`;
-            if (!notifiedKeys[notifKey]) {
-              let message = '';
-              const tone = isOlderUser ? '⏰ Reminder: ' : '⚠️ ';
-              if (alertLevel === 'expired') message = `${tone}${item.name} has expired! Please check your pantry.`;
-              else if (alertLevel === '1_day') message = `${tone}${item.name} expires tomorrow. Use it now!`;
-              else if (alertLevel === '3_days') message = `${tone}${item.name} expires in 3 days. Plan ahead.`;
-              new Notification("ShelfSense Alert", { body: message });
-              updatedKeys[notifKey] = true;
-              changed = true;
-            }
-          }
-        });
-        if (changed) await AsyncStorage.setItem('notified_items', JSON.stringify(updatedKeys));
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const expiringToday = fetchedItems.filter(item => {
+      if (!item.expiryDate) return false;
+      const expDate = new Date(item.expiryDate);
+      expDate.setHours(0,0,0,0);
+      return expDate.getTime() === today.getTime();
+    });
+
+    const expiringSoon = fetchedItems.filter(item => {
+      if (!item.expiryDate) return false;
+      const expDate = new Date(item.expiryDate);
+      expDate.setHours(0,0,0,0);
+      const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+      return diffDays > 0 && diffDays <= 3;
+    });
+
+    if (notifiedItems.size === 0) {
+      if (expiringToday.length > 0) {
+        const names = expiringToday.map(i => i.name).join(', ');
+        Alert.alert(
+          '⏰ Urgent: Expires Today!',
+          `You have ${expiringToday.length} item(s) expiring today: ${names}. Use them now!`,
+          [{ text: 'I\'ll use them', onPress: () => {} }]
+        );
+        setNotifiedItems(new Set(expiringToday.map(i => i.id)));
+      } else if (expiringSoon.length > 0) {
+        const names = expiringSoon.map(i => i.name).join(', ');
+        Alert.alert(
+          '🗓️ Heads Up: Expiring Soon',
+          `You have ${expiringSoon.length} item(s) expiring within 3 days: ${names}. Plan your meals accordingly!`,
+          [{ text: 'Thanks for the heads up', onPress: () => {} }]
+        );
+        setNotifiedItems(new Set(expiringSoon.map(i => i.id)));
       }
-    } catch (e) { console.log('Notification error:', e); }
+    }
+
+    // Web-specific browser notifications
+    if (Platform.OS === 'web' && ("Notification" in window)) {
+      try {
+        if (Notification.permission === "default") await Notification.requestPermission();
+        if (Notification.permission === "granted") {
+          // ... (keep browser notif logic if needed, but the Alert above is more direct for web-app users)
+        }
+      } catch (e) {}
+    }
   };
 
   const expiringSoonCount = items.filter(i => i.status === 'soon' || i.status === 'urgent').length;
@@ -121,7 +141,7 @@ export default function HomeScreen({ navigation }) {
     return diff >= 0 && diff <= 1;
   });
   const savedCount = items.filter(i => i.status === 'safe').length;
-  const estimatedSaved = (savedCount * 3.5).toFixed(0); // ~$3.5 per safe item
+  const estimatedSaved = (savedCount * 150).toLocaleString(); // ~₱150 per safe item
 
   const aiRec = getAIRecommendation(items);
   const recipeSuggestion = getRecipeSuggestion(items.filter(i => i.status !== 'expired'));
@@ -172,7 +192,6 @@ export default function HomeScreen({ navigation }) {
           <Text style={[styles.itemDate, { color: getStatusColor(item.status), fontSize: baseFontSize - 1, fontWeight: '700' }]}>
             {item.status === 'expired' ? 'Expired' : new Date(item.expiryDate).toLocaleDateString()}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={theme.border} />
         </View>
       </TouchableOpacity>
     );
@@ -208,15 +227,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Items Expiring Today */}
-        {todayItems.length > 0 && (
-          <View style={styles.alertBanner}>
-            <Ionicons name="alert-circle" size={20} color="#fff" />
-            <Text style={[styles.alertBannerText, { fontSize: isOlderUser ? 15 : 13 }]}>
-              ⚠️ {todayItems.length} item{todayItems.length > 1 ? 's' : ''} expire today — use {todayItems.length > 1 ? 'them' : 'it'} now!
-            </Text>
-          </View>
-        )}
+        {/* (Alert banner removed as requested) */}
 
         {/* AI Recommendation Card */}
         {aiRec && (
@@ -225,8 +236,10 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name={aiRec.icon} size={22} color={aiRec.color} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.aiLabel, { color: aiRec.color, fontSize: baseFontSize - 1 }]}>🤖 AI Suggestion</Text>
-              <Text style={[styles.aiText, { color: theme.text, fontSize: baseFontSize }]}>{aiRec.text}</Text>
+              <Text style={[styles.aiLabel, { color: aiRec.color, fontSize: baseFontSize - 1 }]}>
+                {aiRec.isRecipe ? '👨‍🍳 Cook Recommendation' : '🤖 AI Suggestion'}
+              </Text>
+              <Text style={[styles.aiText, { color: theme.text, fontSize: baseFontSize + 1, fontWeight: '600' }]}>{aiRec.text}</Text>
             </View>
           </View>
         )}
@@ -260,7 +273,7 @@ export default function HomeScreen({ navigation }) {
           <View style={[styles.insightDivider, { backgroundColor: theme.border }]} />
           <View style={styles.insightItem}>
             <Ionicons name="cash-outline" size={22} color="#2ecc71" />
-            <Text style={[styles.insightNum, { color: theme.text }]}>${estimatedSaved}</Text>
+            <Text style={[styles.insightNum, { color: theme.text }]}>₱{estimatedSaved}</Text>
             <Text style={[styles.insightLabel, { color: theme.subText, fontSize: baseFontSize - 2 }]}>Est. Saved</Text>
           </View>
         </View>
@@ -444,7 +457,7 @@ const styles = StyleSheet.create({
   cardCenter: { flex: 1, paddingVertical: 12, paddingHorizontal: 12 },
   itemName: { fontWeight: 'bold' },
   itemCategory: { marginTop: 2 },
-  cardRight: { paddingHorizontal: 15, alignItems: 'flex-end', gap: 4, flexDirection: 'row', alignItems: 'center' },
+  cardRight: { paddingHorizontal: 15, alignItems: 'center', flexDirection: 'row' },
   itemDate: { textAlign: 'right' },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },

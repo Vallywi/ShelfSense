@@ -20,6 +20,8 @@ import ManualAddScreen from '../screens/ManualAddScreen';
 import TutorialScreen from '../screens/TutorialScreen';
 import SurveyScreen from '../screens/SurveyScreen';
 import RecipeDetailScreen from '../screens/RecipeDetailScreen';
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 import { useTutorial } from '../config/TutorialContext';
 
 const Stack = createNativeStackNavigator();
@@ -80,16 +82,27 @@ export default function AppNavigator() {
   const { theme, isDarkMode } = useTheme();
   const { currentUser } = useAuth();
   const { hasSeenTutorial } = useTutorial() || { hasSeenTutorial: true };
+  const [isFirstTime, setIsFirstTime] = useState(null);
 
-  if (currentUser && hasSeenTutorial === null) {
-    return null; // or a loading spinner while checking async storage
+  useEffect(() => {
+    AsyncStorage.getItem('hasOnboarded').then(val => {
+      setIsFirstTime(val !== 'true');
+    });
+  }, []);
+
+  if (isFirstTime === null || (currentUser && hasSeenTutorial === null)) {
+    return null; 
   }
 
   return (
     <NavigationContainer theme={isDarkMode ? getCustomDarkTheme(theme) : getCustomLightTheme(theme)}>
-      <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'modal' }}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!currentUser ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <>
+            {isFirstTime && <Stack.Screen name="Onboarding" component={OnboardingScreen} />}
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
         ) : !hasSeenTutorial ? (
           <>
             <Stack.Screen name="Tutorial" component={TutorialScreen} />

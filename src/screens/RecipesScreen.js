@@ -49,29 +49,7 @@ export default function RecipesScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Expiring Items Banner */}
-      {expiringItems.length > 0 && (
-        <View style={[styles.urgentCard, { backgroundColor: theme.card, borderColor: '#f39c1244' }]}>
-          <View style={styles.urgentHeader}>
-            <Ionicons name="flame" size={18} color="#e67e22" />
-            <Text style={[styles.urgentTitle, { color: '#e67e22' }]}>  Use These Soon!</Text>
-          </View>
-          <View style={styles.chipRow}>
-            {expiringItems.map(item => (
-              <View key={item.id} style={[styles.chip, {
-                backgroundColor: item.status === 'expired' ? '#e74c3c22' : '#f39c1222',
-                borderColor: item.status === 'expired' ? '#e74c3c88' : '#f39c1288'
-              }]}>
-                <Text style={[styles.chipText, { color: item.status === 'expired' ? '#e74c3c' : '#e67e22' }]}>{item.name}</Text>
-              </View>
-            ))}
-          </View>
-          <View style={[styles.aiSuggestionRow, { backgroundColor: theme.primary + '18' }]}>
-            <Ionicons name="bulb-outline" size={16} color={theme.primary} />
-            <Text style={[styles.aiSuggestionText, { color: theme.primary }]}>  AI: {quickSuggestion}</Text>
-          </View>
-        </View>
-      )}
+      {/* (Expiring items banner removed as requested) */}
 
       {/* Recipe List */}
       {matchingRecipes.length > 0 ? (

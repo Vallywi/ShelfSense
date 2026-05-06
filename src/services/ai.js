@@ -107,7 +107,7 @@ export function getProductImage(itemName) {
     onion: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=200&q=80',
     carrot: 'https://images.unsplash.com/photo-1445282768818-728615cc910a?w=200&q=80',
   };
-  const key = Object.keys(imageMap).find(k => name.includes(k));
+  const key = Object.keys(imageMap).find(k => name.toLowerCase().includes(k));
   return key ? imageMap[key] : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80';
 }
 
@@ -140,6 +140,58 @@ export const RECIPE_DATABASE = [
       'Serve immediately with maple syrup and powdered sugar.',
     ],
     image: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=600&q=80',
+  },
+  {
+    id: 'meat-loaf-fried-rice',
+    keywords: ['meat loaf', 'rice'],
+    name: 'Meat Loaf Fried Rice',
+    emoji: '🍚',
+    description: 'A savory twist on fried rice using diced meat loaf for extra flavor.',
+    time: '15 mins',
+    difficulty: 'Easy',
+    servings: 2,
+    ingredients: ['150g meat loaf, diced', '2 cups cooked rice', '1 egg', 'Garlic', 'Soy sauce'],
+    steps: ['Fry meat loaf until crispy.', 'Add garlic and egg.', 'Toss in rice and soy sauce.', 'Mix well and serve.'],
+    image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=600&q=80',
+  },
+  {
+    id: 'tuna-pasta-salad',
+    keywords: ['tuna', 'pasta'],
+    name: 'Creamy Tuna Pasta',
+    emoji: '🥗',
+    description: 'A quick, filling pasta dish using pantry staples.',
+    time: '15 mins',
+    difficulty: 'Easy',
+    servings: 2,
+    ingredients: ['1 can tuna', '200g pasta', 'Mayonnaise', 'Onion', 'Black pepper'],
+    steps: ['Boil pasta.', 'Drain tuna and mix with mayo and onions.', 'Combine with pasta.', 'Chill or serve warm.'],
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80',
+  },
+  {
+    id: 'tuna-sandwich',
+    keywords: ['tuna', 'bread'],
+    name: 'Classic Tuna Melt',
+    emoji: '🥪',
+    description: 'Crispy toasted bread with savory tuna filling.',
+    time: '10 mins',
+    difficulty: 'Easy',
+    servings: 1,
+    ingredients: ['1 can tuna', '2 slices bread', 'Cheese', 'Butter'],
+    steps: ['Mix tuna with a little mayo.', 'Spread on bread with cheese.', 'Grill with butter until golden.'],
+    image: 'https://images.unsplash.com/photo-1528736235302-52922df5c122?w=600&q=80',
+  },
+  {
+    id: 'pantry-omelette',
+    keywords: ['egg', 'tomato', 'onion'],
+    name: 'Garden Omelette',
+    emoji: '🍳',
+    description: 'A fresh and healthy breakfast using basic vegetables.',
+    time: '8 mins',
+    difficulty: 'Easy',
+    servings: 1,
+    ingredients: ['2 eggs', '1 tomato', '1/2 onion', 'Salt & Pepper'],
+    steps: ['Sauté onions and tomatoes.', 'Pour beaten eggs over.', 'Fold and serve when set.'],
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&q=80',
   },
   {
     id: 'sardines-noodles',
@@ -328,6 +380,84 @@ export const RECIPE_DATABASE = [
     ],
     image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&q=80',
   },
+  {
+    id: 'tuna-patties',
+    keywords: ['tuna', 'egg'],
+    name: 'Golden Tuna Patties',
+    emoji: '🍘',
+    description: 'Pan-fried tuna cakes that are crispy on the outside and tender inside.',
+    time: '20 mins',
+    difficulty: 'Medium',
+    servings: 2,
+    ingredients: ['1 can tuna', '1 egg', 'Breadcrumbs', 'Garlic powder'],
+    steps: ['Mix all ingredients.', 'Form into small patties.', 'Fry in oil until golden brown.'],
+    image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=600&q=80',
+  },
+  {
+    id: 'quick-ramen-upgrade',
+    keywords: ['noodle', 'egg'],
+    name: 'Fancy Pantry Ramen',
+    emoji: '🍜',
+    description: 'Elevate simple instant noodles with a soft-boiled egg and aromatics.',
+    time: '10 mins',
+    difficulty: 'Easy',
+    servings: 1,
+    ingredients: ['1 pack instant noodles', '1 egg', 'Garlic', 'Spring onions'],
+    steps: ['Cook noodles.', 'Add egg (poached or boiled).', 'Garnish with garlic and onions.'],
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+  },
+  {
+    id: 'meat-loaf-stew',
+    keywords: ['meat loaf', 'tomato'],
+    name: 'Savory Meat Loaf Stew',
+    emoji: '🍲',
+    description: 'A comforting stew using sliced meat loaf in a rich tomato base.',
+    time: '25 mins',
+    difficulty: 'Medium',
+    servings: 3,
+    ingredients: ['1 can meat loaf', 'Tomato sauce', 'Potato', 'Carrot'],
+    steps: ['Sauté diced meat loaf.', 'Add veggies and tomato sauce.', 'Simmer until tender.'],
+    image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&q=80',
+  },
+  {
+    id: 'banana-pancakes',
+    keywords: ['banana', 'egg'],
+    name: '2-Ingredient Pancakes',
+    emoji: '🥞',
+    description: 'Healthy and naturally sweet pancakes made with just bananas and eggs.',
+    time: '12 mins',
+    difficulty: 'Easy',
+    servings: 2,
+    ingredients: ['2 ripe bananas', '2 eggs'],
+    steps: ['Mash bananas.', 'Whisk in eggs.', 'Cook small portions in a pan.'],
+    image: 'https://images.unsplash.com/photo-1528452697241-c390a2ec4651?w=600&q=80',
+  },
+  {
+    id: 'garlic-rice',
+    keywords: ['rice', 'garlic'],
+    name: 'Filipino Sinangag',
+    emoji: '🧄',
+    description: 'The ultimate breakfast side dish — aromatic garlic fried rice.',
+    time: '10 mins',
+    difficulty: 'Easy',
+    servings: 2,
+    ingredients: ['2 cups leftover rice', '4 cloves garlic', 'Oil', 'Salt'],
+    steps: ['Fry minced garlic until golden.', 'Add rice and toss.', 'Season with salt.'],
+    image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&q=80',
+  },
+  {
+    id: 'tuna-tofu-stirfry',
+    keywords: ['tuna', 'onion'],
+    name: 'Tuna & Onion Sauté',
+    emoji: '🥘',
+    description: 'A quick and cheap savory stir-fry perfect with rice.',
+    time: '10 mins',
+    difficulty: 'Easy',
+    servings: 1,
+    ingredients: ['1 can tuna', '1 large onion', 'Soy sauce', 'Calamansi or Lemon'],
+    steps: ['Caramelize onions.', 'Add tuna (drained).', 'Splash of soy sauce and citrus.'],
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80',
+  },
 ];
 
 /**
@@ -337,98 +467,16 @@ export function getMatchingRecipes(items) {
   if (!items || items.length === 0) return [];
   const names = items.map(i => i.name.toLowerCase());
   const expiringNames = items
-    .filter(i => i.status === 'soon' || i.status === 'urgent')
+    .filter(i => i.status === 'urgent' || i.status === 'soon')
     .map(i => i.name.toLowerCase());
 
-  const matched = [];
-  for (const recipe of RECIPE_DATABASE) {
-    const matchCount = recipe.keywords.filter(kw => names.some(n => n.includes(kw))).length;
-    if (matchCount > 0) {
-      const expiryBoost = recipe.keywords.filter(kw => expiringNames.some(n => n.includes(kw))).length;
-      matched.push({ ...recipe, matchCount, expiryBoost });
-    }
-  }
-  // Prioritize expiring items, then match count
-  matched.sort((a, b) => (b.expiryBoost - a.expiryBoost) || (b.matchCount - a.matchCount));
-  return matched;
-}
+  return RECIPE_DATABASE.filter(recipe => {
+    // Priority 1: Uses expiring items
+    const hasExpiring = recipe.keywords.some(k => expiringNames.some(en => en.includes(k)));
+    if (hasExpiring) return true;
 
-/**
- * 8. Robust Expiry Date Extraction from OCR
- */
-
-const MONTH_MAP = {
-  JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
-  JUL: 6, TUL: 6, // Common OCR mistake
-  AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11
-};
-
-export function cleanOCRText(text) {
-  if (!text) return "";
-  return text.toUpperCase()
-    .replace(/TUL/g, "JUL")
-    .replace(/[OI]/g, (match) => match === 'O' ? '0' : '1') // O -> 0, I -> 1
-    .replace(/S/g, "5")
-    .replace(/[^A-Z0-9\/\-\.\s,]/g, ""); // Remove noise
-}
-
-export function parseExpiryDate(rawText) {
-  if (!rawText) return null;
-  const text = cleanOCRText(rawText);
-  
-  const patterns = [
-    /(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/,      // 21/07/2026
-    /(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/,      // 2026-07-21
-    /(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2})(?!\d)/, // 21/07/26
-    /(\d{1,2})\s+([A-Z]{3})[A-Z]*\s+(\d{2,4})/,      // 21 JUL 2026
-    /([A-Z]{3})[A-Z]*\s+(\d{1,2}),?\s+(\d{2,4})/,    // JUL 21, 2026
-    /(?:EXP|BEST|BY|BEFORE|BB|E)\s*(\d{1,2})[A-Z\s]+(\d{2,4})/i, // EXP JUL 2026
-  ];
-
-  const candidates = [];
-
-  for (const pattern of patterns) {
-    const matches = text.matchAll(new RegExp(pattern, 'g'));
-    for (const match of matches) {
-      try {
-        let d, m, y;
-        
-        // Pattern specific mapping
-        if (MONTH_MAP[match[2]]) { // DD MON YYYY
-          d = parseInt(match[1]);
-          m = MONTH_MAP[match[2]];
-          y = parseInt(match[3]);
-        } else if (MONTH_MAP[match[1]]) { // MON DD YYYY
-          m = MONTH_MAP[match[1]];
-          d = parseInt(match[2]);
-          y = parseInt(match[3]);
-        } else if (parseInt(match[1]) > 1000) { // YYYY-MM-DD
-          y = parseInt(match[1]);
-          m = parseInt(match[2]) - 1;
-          d = parseInt(match[3]);
-        } else { // DD/MM/YYYY or MM/DD/YYYY (Assume DD/MM if first <= 12 and second > 12, or just stick to standard)
-          // We'll prioritize DD/MM/YYYY for general use
-          d = parseInt(match[1]);
-          m = parseInt(match[2]) - 1;
-          y = parseInt(match[3]);
-          if (m > 11) { // Flip if it looks like MM/DD
-            [d, m] = [m + 1, d - 1]; 
-          }
-        }
-
-        if (y < 100) y += 2000;
-        
-        // Validation: 5-digit years or impossible months/days
-        if (y > 2100 || y < 2020 || m < 0 || m > 11 || d < 1 || d > 31) continue;
-        
-        const date = new Date(y, m, d);
-        if (!isNaN(date.getTime())) candidates.push(date);
-      } catch (e) {}
-    }
-  }
-
-  if (candidates.length === 0) return null;
-  
-  // Return the date furthest in the future (most likely the expiry, not production date)
-  return new Date(Math.max(...candidates.map(c => c.getTime())));
+    // Priority 2: Has most ingredients
+    const matchCount = recipe.keywords.filter(k => names.some(n => n.includes(k))).length;
+    return matchCount >= 1;
+  });
 }

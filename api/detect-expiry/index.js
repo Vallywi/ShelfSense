@@ -17,21 +17,25 @@ module.exports = async (req, res) => {
     // Clean base64 string
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
-    const prompt = `You are an assistant that extracts expiration dates from product images.
-
-Return ONLY a JSON object in this format:
-{
-"date": "YYYY-MM-DD",
-"raw_text": "original detected text",
-"confidence": 0-1
-}
-
-Rules:
-* Detect expiration date (EXP, Best Before, Use By)
-* If multiple dates exist, choose the expiration date (not manufacturing)
-* If month is text (e.g., JUL), convert it correctly
-* If unsure, return null date with low confidence
-* Do not include explanations`;
+    const prompt = `You are an assistant that extracts expiration dates from product labels.
+      Look at the image and find the expiration date. 
+      Common formats include:
+      - DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (e.g., 10.04.2026)
+      - DD MMM YYYY (e.g., 21 JUL 2026)
+      - MM/YYYY (e.g., 12/2026)
+      
+      IMPORTANT:
+      - If you see multiple dates, look for keywords like "EXP", "EXPIRY", "BEST BEFORE", "USE BY", or "E:".
+      - DO NOT confuse with "MFG" or "PROD" (manufacturing) dates. Manufacturing dates are usually earlier than expiration dates.
+      - In the image, if you see dates stacked, usually the bottom one is EXP.
+      
+      Return ONLY a JSON object:
+      {
+        "date": "YYYY-MM-DD",
+        "confidence": 0.0 to 1.0,
+        "raw_text": "the text you found containing the date"
+      }
+      If no date is found, return {"date": null, "confidence": 0.0, "raw_text": "no date found"}.`;
 
     const result = await model.generateContent([
       prompt,

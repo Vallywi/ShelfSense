@@ -8,7 +8,7 @@ function generateInviteCode() {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -17,6 +17,7 @@ module.exports = async function handler(req, res) {
 
   const db = await readDB();
   const userId = decoded.userId;
+  const { action } = req.query;
 
   // GET /api/pantries — return user's pantries
   if (req.method === 'GET') {
@@ -37,30 +38,49 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ pantries });
   }
 
-  // POST /api/pantries — create new pantry
+  // POST /api/pantries
   if (req.method === 'POST') {
-    const { name } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ error: 'Pantry name is required' });
+    // JOIN
+    if (action === 'join') {
+      const { inviteCode } = req.body;
+      if (!inviteCode) return res.status(400).json({ error: 'Invite code is required' });
+      const code = inviteCode.trim().toUpperCase();
+      const pantry = db.pantries.find(p => p.inviteCode === code);
+      if (!pantry) return res.status(404).json({ error: 'Pantry not found' });
+      if (db.pantry_members.some(m => m.pantryId === pantry.id && m.userId === userId)) {
+        return res.status(409).json({ error: 'Already a member' });
+      }
+      db.pantry_members.push({ pantryId: pantry.id, userId, joinedAt: new Date().toISOString() });
+      await writeDB(db);
+      return res.status(200).json({ success: true, pantryId: pantry.id });
+    }
 
-    const pantry = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      ownerId: userId,
-      inviteCode: generateInviteCode(),
-      createdAt: new Date().toISOString(),
-    };
+    // CREATE
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Pantry name required' });
+    const pantry = { id: crypto.randomUUID(), name: name.trim(), ownerId: userId, inviteCode: generateInviteCode(), createdAt: new Date().toISOString() };
     db.pantries.push(pantry);
     db.pantry_members.push({ pantryId: pantry.id, userId, joinedAt: new Date().toISOString() });
     await writeDB(db);
+    return res.status(201).json({ pantry });
+  }
 
-    const ownerUser = db.users.find(u => u.id === userId);
-    return res.status(201).json({
-      pantry: {
-        ...pantry,
-        members: [{ userId, name: ownerUser ? ownerUser.name : 'You', joinedAt: pantry.createdAt }],
-        itemCount: 0,
-      },
-    });
+  // DELETE /api/pantries?action=remove — Kick or Leave
+  if (req.method === 'DELETE' && action === 'remove') {
+    const { pantryId, memberId } = req.body;
+    const targetUserId = memberId || userId;
+    const pantry = db.pantries.find(p => p.id === pantryId);
+    if (!pantry) return res.status(404).json({ error: 'Pantry not found' });
+
+    const isOwner = pantry.ownerId === userId;
+    const isSelf = targetUserId === userId;
+
+    if (!isSelf && !isOwner) return res.status(403).json({ error: 'Forbidden' });
+    if (isSelf && isOwner) return res.status(400).json({ error: 'Owners cannot leave' });
+
+    db.pantry_members = db.pantry_members.filter(m => !(m.pantryId === pantryId && m.userId === targetUserId));
+    await writeDB(db);
+    return res.status(200).json({ success: true });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

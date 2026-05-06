@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../config/ThemeContext';
 import { useAuth } from '../config/AuthContext';
-import { fetchPantryDetail } from '../services/api';
+import { fetchPantryDetail, removeMemberAPI } from '../services/api';
 import { getStatus } from '../services/ai';
 
 const getStatusColor = (status) => {
@@ -41,6 +41,26 @@ export default function PantryDetailScreen({ route, navigation }) {
       setRefreshing(false);
     }
   }, [pantryId]);
+
+  const handleRemoveMember = async (memberId) => {
+    const isSelf = memberId === currentUser?.id;
+    const confirmMsg = isSelf 
+      ? 'Are you sure you want to leave this pantry?' 
+      : 'Are you sure you want to kick this member?';
+    
+    if (Platform.OS === 'web' ? window.confirm(confirmMsg) : true) {
+      try {
+        await removeMemberAPI(pantryId, memberId);
+        if (isSelf) {
+          navigation.navigate('Main', { screen: 'Pantries' });
+        } else {
+          load();
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -95,10 +115,17 @@ export default function PantryDetailScreen({ route, navigation }) {
                 <Ionicons name="key-outline" size={12} color={theme.primary} />
                 <Text style={[styles.codeText, { color: theme.primary }]}> {pantry.inviteCode}</Text>
               </View>
-              {isOwner && (
+              {isOwner ? (
                 <View style={[styles.ownerTag, { backgroundColor: '#f39c1222' }]}>
                   <Text style={{ color: '#f39c12', fontSize: 11, fontWeight: '700' }}>👑 Owner</Text>
                 </View>
+              ) : (
+                <TouchableOpacity 
+                  onPress={() => handleRemoveMember(currentUser?.id)}
+                  style={[styles.leaveBtn, { backgroundColor: theme.warning + '18' }]}
+                >
+                  <Text style={{ color: theme.warning, fontSize: 11, fontWeight: '700' }}>Leave Pantry</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
@@ -123,10 +150,17 @@ export default function PantryDetailScreen({ route, navigation }) {
                 </Text>
               </View>
               <Text style={[styles.memberName, { color: theme.text }]}>{m.name}</Text>
-              {m.userId === pantry.ownerId && (
+              {m.userId === pantry.ownerId ? (
                 <View style={[styles.ownerTag, { backgroundColor: '#f39c1222' }]}>
                   <Text style={{ color: '#f39c12', fontSize: 10, fontWeight: '700' }}>Owner</Text>
                 </View>
+              ) : isOwner && (
+                <TouchableOpacity 
+                  onPress={() => handleRemoveMember(m.userId)}
+                  style={styles.kickBtn}
+                >
+                  <Ionicons name="person-remove-outline" size={18} color={theme.warning} />
+                </TouchableOpacity>
               )}
             </View>
           ))}
@@ -175,6 +209,8 @@ const styles = StyleSheet.create({
   codeBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   codeText: { fontSize: 13, fontWeight: '700', fontFamily: 'monospace' },
   ownerTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  leaveBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  kickBtn: { padding: 8 },
   syncBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, padding: 10, borderRadius: 10, marginBottom: 16 },
   sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, marginHorizontal: 20, marginBottom: 10, marginTop: 8 },
   membersCard: { marginHorizontal: 16, borderRadius: 16, padding: 12, marginBottom: 20 },

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../config/ThemeContext';
 
@@ -203,10 +203,10 @@ export default function ExpiryScanScreen({ navigation, route }) {
 
       {/* OCR Result */}
       {ocrResult && !processing && (
-        <View style={styles.resultArea}>
+        <ScrollView style={styles.resultArea} showsVerticalScrollIndicator={false}>
           {imagePreview && (
             <View style={styles.previewContainer}>
-              <img src={imagePreview} style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 10 }} alt="captured" />
+              <img src={imagePreview} style={{ width: '100%', height: 180, objectFit: 'contain', borderRadius: 10, backgroundColor: '#000' }} alt="captured" />
             </View>
           )}
 
@@ -248,7 +248,7 @@ export default function ExpiryScanScreen({ navigation, route }) {
               </View>
               <Text style={[styles.dateNotFoundTitle, { color: theme.text }]}>Detection Failed</Text>
               <Text style={[styles.dateNotFoundText, { color: theme.subText }]}>
-                AI couldn't find a clear date in the scanned text.
+                AI couldn't find a clear date in the scanned text. Please try a clearer photo or enter it manually below.
               </Text>
               <TouchableOpacity style={[styles.retryLargeBtn, { backgroundColor: theme.primary }]} onPress={startCamera}>
                 <Ionicons name="camera" size={20} color="#fff" />
@@ -257,14 +257,21 @@ export default function ExpiryScanScreen({ navigation, route }) {
             </View>
           )}
 
-
-        </View>
+          {/* Skip button moved inside ScrollView to avoid overlap */}
+          <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
+            <Text style={[styles.skipBtnText, { color: theme.warning }]}>Skip — Enter manually</Text>
+          </TouchableOpacity>
+          
+          <View style={{ height: 40 }} />
+        </ScrollView>
       )}
 
-      {/* Skip button */}
-      <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
-        <Text style={[styles.skipBtnText, { color: theme.warning }]}>Skip — Enter manually</Text>
-      </TouchableOpacity>
+      {/* Skip button for initial state only */}
+      {!ocrResult && !processing && (
+        <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
+          <Text style={[styles.skipBtnText, { color: theme.warning }]}>Skip — Enter manually</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

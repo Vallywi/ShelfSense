@@ -48,7 +48,7 @@ async function apiRequest(endpoint, options = {}) {
 
 // ─── Auth API ─────────────────────────────────────────────────────
 export async function registerUser(name, email, password) {
-  const data = await apiRequest('/api/register', {
+  const data = await apiRequest('/api/auth?action=register', {
     method: 'POST',
     body: JSON.stringify({ name, email, password }),
   });
@@ -57,7 +57,7 @@ export async function registerUser(name, email, password) {
 }
 
 export async function loginUser(email, password) {
-  const data = await apiRequest('/api/login', {
+  const data = await apiRequest('/api/auth?action=login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
@@ -97,7 +97,7 @@ export async function fetchPantryDetail(pantryId) {
 }
 
 export async function joinPantry(inviteCode) {
-  return apiRequest('/api/pantries/join', {
+  return apiRequest('/api/pantries?action=join', {
     method: 'POST',
     body: JSON.stringify({ inviteCode }),
   });
@@ -105,6 +105,13 @@ export async function joinPantry(inviteCode) {
 
 export async function deletePantry(pantryId) {
   return apiRequest(`/api/pantries/${pantryId}`, { method: 'DELETE' });
+}
+
+export async function removeMemberAPI(pantryId, memberId) {
+  return apiRequest('/api/pantries?action=remove', {
+    method: 'DELETE',
+    body: JSON.stringify({ pantryId, memberId }),
+  });
 }
 
 // ─── Items API ────────────────────────────────────────────────────
