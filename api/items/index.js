@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
 
   // POST /api/items — add item
   if (req.method === 'POST') {
-    const { pantryId, name, category, quantity, expiryDate, status, imageUrl } = req.body;
+    const { pantryId, name, category, quantity, expiryDate, status, imageUrl, nutrition } = req.body;
     if (!name) return res.status(400).json({ error: 'Item name is required' });
 
     // If pantryId provided, verify membership
@@ -84,6 +84,7 @@ module.exports = async function handler(req, res) {
       expiryDate: expiryDate || null,
       status: status || 'safe',
       imageUrl: imageUrl || null,
+      nutrition: nutrition || null,
       createdBy: userId,
       createdAt: new Date().toISOString(),
     };

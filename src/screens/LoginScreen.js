@@ -35,86 +35,102 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: '#121212' }]}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        
+
+        <View style={[styles.logoCircle, { backgroundColor: theme.primarySoft }]}>
+          <Ionicons name="leaf" size={36} color={theme.primaryDeep} />
+        </View>
+
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>sign in to access your account</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: theme.subText }]}>Sign in to access your pantry</Text>
         </View>
 
         {error ? (
-          <View style={styles.errorBox}>
-            <Ionicons name="alert-circle" size={18} color="#e74c3c" />
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorBox, { backgroundColor: theme.dangerSoft, borderColor: theme.danger + '55' }]}>
+            <Ionicons name="alert-circle" size={16} color={theme.danger} />
+            <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text>
           </View>
         ) : null}
 
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="mail-outline" size={18} color={theme.subText} />
             <TextInput
-              style={styles.input}
-              placeholder="Enter Your Email"
-              placeholderTextColor="#888"
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Email address"
+              placeholderTextColor={theme.subText}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Ionicons name="mail" size={20} color="#888" />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="lock-closed-outline" size={18} color={theme.subText} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: theme.text }]}
               placeholder="Password"
-              placeholderTextColor="#888"
+              placeholderTextColor={theme.subText}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#888" />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.subText} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.optionsRow}>
-            <TouchableOpacity 
-              style={styles.rememberMe} 
+            <TouchableOpacity
+              style={styles.rememberMe}
               onPress={() => setRememberMe(!rememberMe)}
               activeOpacity={0.7}
             >
-              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
+              <View style={[
+                styles.checkbox,
+                { borderColor: rememberMe ? theme.primaryDeep : theme.borderStrong, backgroundColor: rememberMe ? theme.primaryDeep : 'transparent' },
+              ]}>
+                {rememberMe && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
               </View>
-              <Text style={styles.rememberText}>Remember me</Text>
+              <Text style={[styles.rememberText, { color: theme.subText }]}>Remember me</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity onPress={() => {}}>
-              <Text style={styles.forgotText}>Forget password ?</Text>
+
+            <TouchableOpacity onPress={() => {}} activeOpacity={0.7}>
+              <Text style={[styles.forgotText, { color: theme.primaryDeep }]}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
-            style={[styles.loginBtn, loading && { opacity: 0.7 }]}
+            style={[styles.loginBtn, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }, loading && { opacity: 0.7 }]}
             onPress={handleLogin}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginBtnText}>Log In</Text>
+              <Text style={styles.loginBtnText}>Sign In</Text>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.registerRow} 
+          <View style={styles.dividerRow}>
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+            <Text style={[styles.dividerText, { color: theme.subText }]}>or</Text>
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.registerRow, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.85}
           >
-            <Text style={styles.registerText}>
-              New Member? <Text style={styles.registerLink}>Register now</Text>
+            <Text style={[styles.registerText, { color: theme.subText }]}>
+              New here? <Text style={[styles.registerLink, { color: theme.primaryDeep }]}>Create an account</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -126,41 +142,59 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { flexGrow: 1, paddingHorizontal: 30, justifyContent: 'center', paddingTop: 60, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 60 },
-  title: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 10 },
-  subtitle: { fontSize: 16, color: '#aaa' },
-  
-  errorBox: { 
-    flexDirection: 'row', alignItems: 'center', gap: 8, 
-    backgroundColor: 'rgba(231,76,60,0.1)', padding: 12, borderRadius: 12, marginBottom: 20 
-  },
-  errorText: { color: '#e74c3c', fontSize: 14, fontWeight: '600' },
+  scroll: { flexGrow: 1, paddingHorizontal: 28, justifyContent: 'center', paddingTop: 60, paddingBottom: 40 },
 
-  form: { gap: 20 },
-  inputGroup: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2A2A2A', borderRadius: 16, paddingHorizontal: 20, height: 65,
+  logoCircle: {
+    width: 76, height: 76, borderRadius: 24,
+    justifyContent: 'center', alignItems: 'center',
+    alignSelf: 'center', marginBottom: 24,
   },
-  input: { flex: 1, color: '#fff', fontSize: 16 },
-  
-  optionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 },
+  header: { alignItems: 'center', marginBottom: 32 },
+  title: { fontSize: 30, fontWeight: '800', marginBottom: 8, letterSpacing: 0.3 },
+  subtitle: { fontSize: 14, fontWeight: '500' },
+
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1,
+  },
+  errorText: { fontSize: 13, fontWeight: '600', flex: 1 },
+
+  form: { gap: 14 },
+  inputGroup: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 14, paddingHorizontal: 16, height: 56,
+    borderWidth: 1,
+  },
+  input: { flex: 1, fontSize: 15, fontWeight: '500' },
+
+  optionsRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 4, marginBottom: 4,
+  },
   rememberMe: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: '#444' },
-  checkboxChecked: { backgroundColor: '#2ECC71', borderColor: '#2ECC71' },
-  rememberText: { color: '#aaa', fontSize: 14 },
-  forgotText: { color: '#2ECC71', fontWeight: '700', fontSize: 14 },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  rememberText: { fontSize: 13, fontWeight: '500' },
+  forgotText: { fontWeight: '700', fontSize: 13 },
 
   loginBtn: {
-    backgroundColor: '#7ED321', // Lighter green as in picture
-    height: 60, borderRadius: 16,
-    justifyContent: 'center', alignItems: 'center',
-    marginTop: 30,
-    shadowColor: '#7ED321', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8,
+    height: 56, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center', marginTop: 14,
+    elevation: 5,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10,
   },
-  loginBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  
-  registerRow: { alignItems: 'center', marginTop: 25 },
-  registerText: { color: '#fff', fontSize: 14 },
-  registerLink: { color: '#2ECC71', fontWeight: '700' },
+  loginBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 14 },
+  divider: { flex: 1, height: 1 },
+  dividerText: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+
+  registerRow: {
+    alignItems: 'center', paddingVertical: 14,
+    borderRadius: 14, borderWidth: 1,
+  },
+  registerText: { fontSize: 14, fontWeight: '500' },
+  registerLink: { fontWeight: '700' },
 });

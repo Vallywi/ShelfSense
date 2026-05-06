@@ -40,93 +40,108 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: '#121212' }]}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        
+
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={20} color={theme.text} />
+        </TouchableOpacity>
+
+        <View style={[styles.logoCircle, { backgroundColor: theme.accentSoft }]}>
+          <Ionicons name="person-add" size={32} color={theme.accentDeep} />
+        </View>
+
         <View style={styles.header}>
-          <Text style={styles.title}>Join Us</Text>
-          <Text style={styles.subtitle}>create an account to start tracking</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: theme.subText }]}>Start tracking your pantry today</Text>
         </View>
 
         {error ? (
-          <View style={styles.errorBox}>
-            <Ionicons name="alert-circle" size={18} color="#e74c3c" />
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorBox, { backgroundColor: theme.dangerSoft, borderColor: theme.danger + '55' }]}>
+            <Ionicons name="alert-circle" size={16} color={theme.danger} />
+            <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text>
           </View>
         ) : null}
 
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="person-outline" size={18} color={theme.subText} />
             <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="#888"
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Full name"
+              placeholderTextColor={theme.subText}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
             />
-            <Ionicons name="person" size={20} color="#888" />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="mail-outline" size={18} color={theme.subText} />
             <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              placeholderTextColor="#888"
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Email address"
+              placeholderTextColor={theme.subText}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Ionicons name="mail" size={20} color="#888" />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="lock-closed-outline" size={18} color={theme.subText} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: theme.text }]}
               placeholder="Password"
-              placeholderTextColor="#888"
+              placeholderTextColor={theme.subText}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#888" />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.subText} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={theme.subText} />
             <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              placeholderTextColor="#888"
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Confirm password"
+              placeholderTextColor={theme.subText}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showPassword}
             />
-            <Ionicons name="lock-closed" size={20} color="#888" />
           </View>
 
           <TouchableOpacity
-            style={[styles.loginBtn, loading && { opacity: 0.7 }]}
+            style={[styles.registerBtn, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }, loading && { opacity: 0.7 }]}
             onPress={handleRegister}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginBtnText}>Register</Text>
+              <Text style={styles.registerBtnText}>Create Account</Text>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.registerRow} 
+          <TouchableOpacity
+            style={styles.loginRow}
             onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.registerText}>
-              Already a Member? <Text style={styles.registerLink}>Log in now</Text>
+            <Text style={[styles.loginText, { color: theme.subText }]}>
+              Already have an account? <Text style={[styles.loginLink, { color: theme.primaryDeep }]}>Sign in</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -138,34 +153,47 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { flexGrow: 1, paddingHorizontal: 30, justifyContent: 'center', paddingTop: 60, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 40 },
-  title: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 10 },
-  subtitle: { fontSize: 16, color: '#aaa' },
-  
-  errorBox: { 
-    flexDirection: 'row', alignItems: 'center', gap: 8, 
-    backgroundColor: 'rgba(231,76,60,0.1)', padding: 12, borderRadius: 12, marginBottom: 20 
-  },
-  errorText: { color: '#e74c3c', fontSize: 14, fontWeight: '600' },
+  scroll: { flexGrow: 1, paddingHorizontal: 28, justifyContent: 'center', paddingTop: 70, paddingBottom: 40 },
 
-  form: { gap: 18 },
-  inputGroup: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2A2A2A', borderRadius: 16, paddingHorizontal: 20, height: 60,
-  },
-  input: { flex: 1, color: '#fff', fontSize: 16 },
-  
-  loginBtn: {
-    backgroundColor: '#7ED321',
-    height: 60, borderRadius: 16,
+  backButton: {
+    position: 'absolute', top: 50, left: 20,
+    width: 40, height: 40, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#7ED321', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8,
+    borderWidth: 1,
   },
-  loginBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  
-  registerRow: { alignItems: 'center', marginTop: 25 },
-  registerText: { color: '#fff', fontSize: 14 },
-  registerLink: { color: '#2ECC71', fontWeight: '700' },
+
+  logoCircle: {
+    width: 70, height: 70, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center',
+    alignSelf: 'center', marginBottom: 20,
+  },
+  header: { alignItems: 'center', marginBottom: 26 },
+  title: { fontSize: 28, fontWeight: '800', marginBottom: 8, letterSpacing: 0.3 },
+  subtitle: { fontSize: 14, fontWeight: '500' },
+
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1,
+  },
+  errorText: { fontSize: 13, fontWeight: '600', flex: 1 },
+
+  form: { gap: 12 },
+  inputGroup: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 14, paddingHorizontal: 16, height: 54,
+    borderWidth: 1,
+  },
+  input: { flex: 1, fontSize: 15, fontWeight: '500' },
+
+  registerBtn: {
+    height: 56, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center', marginTop: 14,
+    elevation: 5,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10,
+  },
+  registerBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
+  loginRow: { alignItems: 'center', marginTop: 18 },
+  loginText: { fontSize: 13, fontWeight: '500' },
+  loginLink: { fontWeight: '700' },
 });

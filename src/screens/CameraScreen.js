@@ -8,7 +8,6 @@ if (Platform.OS === 'web') {
   Html5Qrcode = require('html5-qrcode').Html5Qrcode;
 }
 
-// Map Open Food Facts categories to our app categories
 function mapCategory(apiCategories) {
   if (!apiCategories) return 'Others';
   const lowerCats = apiCategories.toLowerCase();
@@ -28,23 +27,39 @@ async function lookupBarcodeAPI(code) {
   try {
     const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const data = await res.json();
-    
     if (data.status === 1 && data.product) {
-      const name = data.product.product_name || data.product.generic_name || data.product.brands || `Product (${code})`;
-      const category = mapCategory(data.product.categories);
-      const imageUrl = data.product.image_front_url || data.product.image_url || null;
-      const quantity = data.product.quantity || null;
-      return { name, category, imageUrl, quantity };
+      const p = data.product;
+      const name = p.product_name || p.generic_name || p.brands || `Product (${code})`;
+      const category = mapCategory(p.categories);
+      const imageUrl = p.image_front_url || p.image_url || null;
+      const quantity = p.quantity || null;
+
+      // Extract nutrition (per 100g/ml as base)
+      const n = p.nutriments || {};
+      const nutrition = {
+        calories: numOrNull(n['energy-kcal_100g']) ?? numOrNull(n['energy-kcal']) ?? null,
+        protein: numOrNull(n['proteins_100g']),
+        carbs: numOrNull(n['carbohydrates_100g']),
+        fat: numOrNull(n['fat_100g']),
+        sugar: numOrNull(n['sugars_100g']),
+        fiber: numOrNull(n['fiber_100g']),
+        salt: numOrNull(n['salt_100g']),
+        servingSize: p.serving_size || null,
+        nutritionGrade: p.nutriscore_grade || null,
+      };
+      const hasAnyNutrition = Object.values(nutrition).some(v => v !== null);
+
+      return { name, category, imageUrl, quantity, nutrition: hasAnyNutrition ? nutrition : null };
     }
   } catch (error) {
     console.error('API lookup error:', error);
   }
-  // Fallback if not found or network error
-  return { 
-    name: 'Product Name Not Found', 
-    category: 'Others',
-    isUnknown: true 
-  };
+  return { name: 'Product Name Not Found', category: 'Others', isUnknown: true };
+}
+
+function numOrNull(v) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
 }
 
 export default function CameraScreen({ navigation }) {
@@ -70,7 +85,6 @@ export default function CameraScreen({ navigation }) {
       setScannedData(null);
       setProductInfo(null);
 
-      // Wait for DOM element to be ready
       await new Promise(resolve => setTimeout(resolve, 200));
 
       const scanner = new Html5Qrcode('barcode-reader');
@@ -80,17 +94,14 @@ export default function CameraScreen({ navigation }) {
         { facingMode: 'environment' },
         { fps: 15, qrbox: { width: 280, height: 150 }, aspectRatio: 1.0 },
         async (decodedText) => {
-          // Auto-detected! Stop scanning immediately
           setScannedData(decodedText);
           setScanning(false);
           setAutoDetecting(true);
           stopScanner();
 
-          // Fetch product data from Open Food Facts API
           const product = await lookupBarcodeAPI(decodedText);
           setProductInfo(product);
 
-          // Auto-proceed after showing the product for 2 seconds
           setTimeout(() => {
             setAutoDetecting(false);
             navigation.navigate('ExpiryScan', {
@@ -99,11 +110,12 @@ export default function CameraScreen({ navigation }) {
               productCategory: product.category,
               productImage: product.imageUrl,
               productSize: product.quantity,
-              isUnknown: product.isUnknown
+              productNutrition: product.nutrition || null,
+              isUnknown: product.isUnknown,
             });
           }, 2500);
         },
-        () => { /* scan miss — ignore */ }
+        () => { /* miss */ }
       );
     } catch (err) {
       setError('Could not access camera. Please allow camera access and try again.');
@@ -117,8 +129,8 @@ export default function CameraScreen({ navigation }) {
       try {
         const state = scannerRef.current.getState();
         if (state === 2) await scannerRef.current.stop();
-      } catch (e) { }
-      try { scannerRef.current.clear(); } catch (e) { }
+      } catch (e) {}
+      try { scannerRef.current.clear(); } catch (e) {}
       scannerRef.current = null;
     }
   };
@@ -131,10 +143,16 @@ export default function CameraScreen({ navigation }) {
   if (Platform.OS !== 'web') {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
-        <Ionicons name="camera-outline" size={60} color={theme.subText} />
-        <Text style={[styles.errorText, { color: theme.subText }]}>Camera scanning is available on the web/PWA version.</Text>
-        <TouchableOpacity style={[styles.manualBtn, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('ManualAdd')}>
-          <Text style={[styles.manualBtnText, { color: theme.primary }]}>Switch to manual input</Text>
+        <View style={[styles.iconBg, { backgroundColor: theme.primarySoft }]}>
+          <Ionicons name="camera-outline" size={56} color={theme.primary} />
+        </View>
+        <Text style={[styles.errorText, { color: theme.text }]}>Camera scanning is available on the web/PWA version.</Text>
+        <TouchableOpacity
+          style={[styles.manualBtn, { backgroundColor: theme.primaryDeep }]}
+          onPress={() => navigation.navigate('ManualAdd')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.manualBtnText}>Switch to manual input</Text>
         </TouchableOpacity>
       </View>
     );
@@ -142,73 +160,108 @@ export default function CameraScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Active Scanner */}
       {scanning && !scannedData && (
         <View style={styles.scannerArea}>
           <div id="barcode-reader" style={{ width: '100%', height: '100%' }} />
+
+          <View style={styles.scanFrame}>
+            <View style={[styles.cornerTL, { borderColor: theme.primary }]} />
+            <View style={[styles.cornerTR, { borderColor: theme.primary }]} />
+            <View style={[styles.cornerBL, { borderColor: theme.primary }]} />
+            <View style={[styles.cornerBR, { borderColor: theme.primary }]} />
+          </View>
+
           <View style={styles.scanOverlayBottom}>
-            <View style={styles.scanPulse}>
-              <Ionicons name="scan" size={20} color="#2ECC71" />
-              <Text style={styles.scanInstruction}>  Scanning... Point at barcode</Text>
+            <View style={[styles.scanPulse, { backgroundColor: 'rgba(0,0,0,0.75)' }]}>
+              <Ionicons name="scan" size={18} color={theme.primary} />
+              <Text style={[styles.scanInstruction, { color: theme.primary }]}>Scanning... Point at barcode</Text>
             </View>
           </View>
         </View>
       )}
 
-      {/* Error */}
       {error && (
         <View style={styles.centered}>
-          <Ionicons name="alert-circle" size={50} color={theme.danger} />
+          <View style={[styles.iconBg, { backgroundColor: theme.dangerSoft }]}>
+            <Ionicons name="alert-circle" size={48} color={theme.danger} />
+          </View>
           <Text style={[styles.errorText, { color: theme.text }]}>{error}</Text>
-          <TouchableOpacity style={[styles.retryBtn, { backgroundColor: theme.primary }]} onPress={() => { setError(null); startScanner(); }}>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: theme.primaryDeep }]}
+            onPress={() => { setError(null); startScanner(); }}
+            activeOpacity={0.85}
+          >
             <Text style={styles.retryBtnText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Auto-detected product */}
       {scannedData && (
         <View style={styles.resultContainer}>
-          <Ionicons name="checkmark-circle" size={70} color={theme.safe} />
-          <Text style={[styles.resultTitle, { color: theme.text }]}>Barcode Detected!</Text>
-          <Text style={[styles.resultCode, { color: theme.subText }]}>{scannedData}</Text>
+          <View style={[styles.iconBg, { backgroundColor: theme.safeSoft }]}>
+            <Ionicons name="checkmark-circle" size={56} color={theme.safe} />
+          </View>
+          <Text style={[styles.resultTitle, { color: theme.text }]}>Barcode Detected</Text>
+          <Text style={[styles.resultCode, { color: theme.subText, backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {scannedData}
+          </Text>
 
           {autoDetecting && !productInfo && (
-            <View style={[styles.productCard, { paddingVertical: 40, backgroundColor: theme.card, borderColor: theme.border }]}>
-              <ActivityIndicator size="large" color={theme.primary} />
-              <Text style={[styles.autoText, { marginTop: 15, color: theme.subText }]}>Fetching product info...</Text>
+            <View style={[styles.productCard, { backgroundColor: theme.card, borderColor: theme.border, paddingVertical: 36 }]}>
+              <ActivityIndicator size="large" color={theme.primaryDeep} />
+              <Text style={[styles.autoText, { marginTop: 14, color: theme.subText }]}>Fetching product info...</Text>
             </View>
           )}
 
           {productInfo && (
-            <View style={[styles.productCard, { backgroundColor: theme.card, borderColor: productInfo.isUnknown ? theme.warning : theme.border }]}>
+            <View
+              style={[
+                styles.productCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: productInfo.isUnknown ? theme.warning : theme.border,
+                  shadowOpacity: theme.shadowOpacity,
+                },
+              ]}
+            >
               {productInfo.imageUrl ? (
-                <img 
-                  src={productInfo.imageUrl} 
-                  style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 15, borderRadius: 10, backgroundColor: '#fff' }} 
-                  alt="Product" 
+                <img
+                  src={productInfo.imageUrl}
+                  style={{
+                    width: 100, height: 100, objectFit: 'contain',
+                    marginBottom: 14, borderRadius: 14, backgroundColor: '#FFFFFF',
+                    padding: 6,
+                  }}
+                  alt="Product"
                 />
               ) : (
-                <Ionicons 
-                  name={productInfo.isUnknown ? "help-circle" : "cube"} 
-                  size={40} 
-                  color={productInfo.isUnknown ? theme.warning : theme.primary} 
-                  style={{ marginBottom: 10 }}
-                />
+                <View style={[styles.productIconBg, { backgroundColor: productInfo.isUnknown ? theme.warningSoft : theme.primarySoft }]}>
+                  <Ionicons
+                    name={productInfo.isUnknown ? 'help-circle' : 'cube'}
+                    size={36}
+                    color={productInfo.isUnknown ? theme.warning : theme.primaryDeep}
+                  />
+                </View>
               )}
-              
+
               <Text style={[styles.productName, { color: theme.text }]}>{productInfo.name}</Text>
-              
+
               {!productInfo.isUnknown && (
                 <View style={styles.badgesRow}>
-                  <Text style={[styles.badge, { backgroundColor: theme.background, color: theme.primary }]}>{productInfo.category}</Text>
-                  {productInfo.quantity && <Text style={[styles.badge, { backgroundColor: theme.background, color: theme.primary }]}>{productInfo.quantity}</Text>}
+                  <View style={[styles.badge, { backgroundColor: theme.primarySoft }]}>
+                    <Text style={[styles.badgeText, { color: theme.primaryDeep }]}>{productInfo.category}</Text>
+                  </View>
+                  {productInfo.quantity && (
+                    <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
+                      <Text style={[styles.badgeText, { color: theme.accentDeep }]}>{productInfo.quantity}</Text>
+                    </View>
+                  )}
                 </View>
               )}
 
               {productInfo.isUnknown && (
-                <Text style={[styles.productCategory, { color: theme.subText, marginTop: 8 }]}>
-                  Not in global database. You can enter the name on the final step.
+                <Text style={[styles.productCategory, { color: theme.subText }]}>
+                  Not in global database. You can enter the name on the next step.
                 </Text>
               )}
             </View>
@@ -216,16 +269,20 @@ export default function CameraScreen({ navigation }) {
 
           {autoDetecting && productInfo && (
             <View style={styles.autoProgress}>
-              <ActivityIndicator size="small" color={theme.primary} />
-              <Text style={[styles.autoText, { color: theme.subText }]}>  Proceeding to expiry scanner...</Text>
+              <ActivityIndicator size="small" color={theme.primaryDeep} />
+              <Text style={[styles.autoText, { color: theme.subText }]}>Proceeding to expiry scanner...</Text>
             </View>
           )}
         </View>
       )}
 
-      {/* Manual fallback */}
-      <TouchableOpacity style={[styles.manualBtn, { backgroundColor: theme.card }]} onPress={handleManualSkip}>
-        <Text style={[styles.manualBtnText, { color: theme.primary }]}>Skip — Enter manually instead</Text>
+      <TouchableOpacity
+        style={[styles.skipBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+        onPress={handleManualSkip}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="create-outline" size={18} color={theme.primaryDeep} />
+        <Text style={[styles.skipBtnText, { color: theme.primaryDeep }]}>Skip — Enter manually instead</Text>
       </TouchableOpacity>
     </View>
   );
@@ -234,36 +291,73 @@ export default function CameraScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+
+  iconBg: {
+    width: 100, height: 100, borderRadius: 50,
+    justifyContent: 'center', alignItems: 'center',
+  },
+
   scannerArea: {
     flex: 1, position: 'relative', overflow: 'hidden',
-    backgroundColor: '#000', borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
+    backgroundColor: '#000',
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
   },
-  scanOverlayBottom: {
-    position: 'absolute', bottom: 25, left: 0, right: 0, alignItems: 'center',
+  scanFrame: {
+    position: 'absolute', top: '40%', left: '50%',
+    width: 240, height: 130,
+    transform: [{ translateX: -120 }, { translateY: -65 }],
+    pointerEvents: 'none',
   },
+  cornerTL: { position: 'absolute', top: 0, left: 0, width: 26, height: 26, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 8 },
+  cornerTR: { position: 'absolute', top: 0, right: 0, width: 26, height: 26, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 8 },
+  cornerBL: { position: 'absolute', bottom: 0, left: 0, width: 26, height: 26, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 8 },
+  cornerBR: { position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 8 },
+
+  scanOverlayBottom: { position: 'absolute', bottom: 30, left: 0, right: 0, alignItems: 'center' },
   scanPulse: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22,
   },
-  scanInstruction: { color: '#2ECC71', fontSize: 15, fontWeight: 'bold' },
-  errorText: { fontSize: 16, textAlign: 'center', marginTop: 15, paddingHorizontal: 20 },
-  retryBtn: {
-    paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 20,
-  },
-  retryBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  scanInstruction: { fontSize: 14, fontWeight: '700' },
+
+  errorText: { fontSize: 15, textAlign: 'center', marginTop: 18, paddingHorizontal: 20, fontWeight: '600', lineHeight: 22 },
+  retryBtn: { paddingVertical: 14, paddingHorizontal: 30, borderRadius: 14, marginTop: 22 },
+  retryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+
   resultContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  resultTitle: { fontSize: 26, fontWeight: 'bold', marginTop: 15 },
-  resultCode: { fontSize: 13, marginTop: 5, fontFamily: 'monospace' },
-  productCard: {
-    padding: 25, borderRadius: 15, width: '100%',
-    marginTop: 25, alignItems: 'center', borderWidth: 1,
+  resultTitle: { fontSize: 22, fontWeight: '800', marginTop: 16, letterSpacing: 0.3 },
+  resultCode: {
+    fontSize: 13, marginTop: 8, fontFamily: 'monospace',
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, fontWeight: '700',
   },
-  productName: { fontSize: 22, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
-  productCategory: { fontSize: 15, marginTop: 8 },
-  badgesRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'center', flexWrap: 'wrap' },
-  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, fontSize: 13, overflow: 'hidden' },
-  autoProgress: { flexDirection: 'row', alignItems: 'center', marginTop: 25 },
-  autoText: { fontSize: 14 },
-  manualBtn: { padding: 18, alignItems: 'center' },
-  manualBtnText: { fontSize: 16, textDecorationLine: 'underline' },
+
+  productCard: {
+    padding: 22, borderRadius: 18, width: '100%',
+    marginTop: 22, alignItems: 'center', borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+  },
+  productIconBg: {
+    width: 80, height: 80, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 12,
+  },
+  productName: { fontSize: 20, fontWeight: '800', marginTop: 6, textAlign: 'center' },
+  productCategory: { fontSize: 13, marginTop: 10, textAlign: 'center', fontWeight: '500', lineHeight: 19 },
+  badgesRow: { flexDirection: 'row', gap: 8, marginTop: 12, justifyContent: 'center', flexWrap: 'wrap' },
+  badge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
+  badgeText: { fontSize: 12, fontWeight: '700' },
+
+  autoProgress: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 22 },
+  autoText: { fontSize: 13, fontWeight: '500' },
+
+  skipBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    margin: 16, paddingVertical: 14, borderRadius: 14, borderWidth: 1,
+  },
+  skipBtnText: { fontSize: 14, fontWeight: '700' },
+
+  manualBtn: { paddingVertical: 14, paddingHorizontal: 30, borderRadius: 14, marginTop: 22 },
+  manualBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 });

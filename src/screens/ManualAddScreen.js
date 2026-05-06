@@ -34,12 +34,11 @@ function getDefaultExpiry(productName) {
 }
 
 export default function ManualAddScreen({ navigation, route }) {
-  const initialName = route.params?.productName && route.params?.productName !== 'Product Name Not Found' 
-    ? route.params.productName 
+  const initialName = route.params?.productName && route.params?.productName !== 'Product Name Not Found'
+    ? route.params.productName
     : '';
   const initialCategory = route.params?.productCategory || 'Others';
 
-  // If we have a scanned expiry date, use it; otherwise predict from name
   let initialExpiry = '';
   if (route.params?.detectedExpiryDate) {
     initialExpiry = formatDateForInput(new Date(route.params.detectedExpiryDate));
@@ -65,7 +64,8 @@ export default function ManualAddScreen({ navigation, route }) {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [saved, setSaved] = useState(false);
   const [productImage, setProductImage] = useState(route.params?.productImage || null);
-  
+  const productNutrition = route.params?.productNutrition || null;
+
   const handleQtyChange = (delta) => {
     const match = String(quantity).match(/^(\d+)/);
     let num = match ? parseInt(match[1]) : 1;
@@ -91,7 +91,6 @@ export default function ManualAddScreen({ navigation, route }) {
     }
   };
 
-  // When name changes and no expiry is set, auto-predict
   const handleNameChange = (text) => {
     setName(text);
     if (!expiryDate && text.trim().length > 2) {
@@ -104,15 +103,12 @@ export default function ManualAddScreen({ navigation, route }) {
       Alert.alert('Missing Name', 'Please enter a product name.');
       return;
     }
-
     if (!expiryDate) {
       Alert.alert('Missing Date', 'Please select an expiration date.');
       return;
     }
-
     setLoading(true);
     try {
-      // Validate date
       if (!expiryDate || isNaN(new Date(expiryDate).getTime())) {
         setLoading(false);
         Alert.alert('Invalid Date', 'Please select a valid expiration date.');
@@ -120,13 +116,14 @@ export default function ManualAddScreen({ navigation, route }) {
       }
 
       const expDate = new Date(expiryDate + (expiryDate.includes('T') ? '' : 'T23:59:59'));
-      
+
       const itemData = {
         name: name.trim(),
         category,
         quantity: quantity.trim(),
         expiryDate: expDate.toISOString(),
-        imageUrl: productImage, // Include the real product photo
+        imageUrl: productImage,
+        nutrition: productNutrition,
       };
 
       if (editMode && itemId) {
@@ -141,7 +138,6 @@ export default function ManualAddScreen({ navigation, route }) {
       setTimeout(() => {
         navigation.navigate('Main');
       }, 800);
-
     } catch (error) {
       setLoading(false);
       console.error('Save error:', error);
@@ -149,70 +145,87 @@ export default function ManualAddScreen({ navigation, route }) {
     }
   };
 
-  // Calculate status preview
   const statusPreview = expiryDate ? getStatus(new Date(expiryDate + 'T23:59:59').toISOString()) : null;
   const daysLeft = expiryDate ? Math.ceil((new Date(expiryDate + 'T23:59:59') - new Date()) / (1000 * 60 * 60 * 24)) : null;
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'safe': return '#27ae60';
-      case 'soon': return '#f39c12';
-      case 'urgent': return '#e67e22';
-      case 'expired': return '#e74c3c';
-      default: return '#888';
+      case 'safe': return theme.safe;
+      case 'soon': return theme.warning;
+      case 'urgent': return '#E89274';
+      case 'expired': return theme.danger;
+      default: return theme.subText;
     }
   };
 
   if (saved) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Ionicons name="checkmark-circle" size={80} color={theme.safe} />
-        <Text style={{ color: theme.text, fontSize: 22, marginTop: 15, fontWeight: 'bold' }}>Item Saved!</Text>
-        <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8 }}>Redirecting to pantry...</Text>
+        <View style={[styles.savedIconBg, { backgroundColor: theme.primarySoft }]}>
+          <Ionicons name="checkmark-circle" size={64} color={theme.safe} />
+        </View>
+        <Text style={{ color: theme.text, fontSize: 22, marginTop: 16, fontWeight: '800' }}>Item Saved!</Text>
+        <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, fontWeight: '500' }}>Redirecting to pantry...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
-      {/* Scanned info banner */}
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+      keyboardShouldPersistTaps="handled"
+    >
       {route.params?.barcode && (
-        <View style={styles.scannedBanner}>
-          <Ionicons name="barcode" size={18} color="#2ECC71" />
-          <Text style={styles.scannedBannerText}>  Scanned: {route.params.barcode}</Text>
+        <View style={[styles.scannedBanner, { backgroundColor: theme.primarySoft, borderColor: theme.primary + '55' }]}>
+          <Ionicons name="barcode" size={16} color={theme.primaryDeep} />
+          <Text style={[styles.scannedBannerText, { color: theme.primaryDeep }]}>Scanned: {route.params.barcode}</Text>
         </View>
       )}
 
-      {/* Product Image Section */}
+      {productNutrition && (
+        <View style={[styles.scannedBanner, { backgroundColor: theme.accentSoft, borderColor: theme.accent + '55' }]}>
+          <Ionicons name="nutrition-outline" size={16} color={theme.accentDeep} />
+          <Text style={[styles.scannedBannerText, { color: theme.accentDeep }]}>
+            Nutrition info captured ({productNutrition.calories ? `${productNutrition.calories} kcal/100g` : 'partial'})
+          </Text>
+        </View>
+      )}
+
+      {/* Image */}
       <View style={styles.imageSection}>
         {productImage ? (
           <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: productImage }} style={styles.imagePreview} />
-            <TouchableOpacity style={styles.removeImageBtn} onPress={() => setProductImage(null)}>
-              <Ionicons name="close-circle" size={24} color="#e74c3c" />
+            <Image source={{ uri: productImage }} style={[styles.imagePreview, { borderColor: theme.border }]} />
+            <TouchableOpacity
+              style={[styles.removeImageBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => setProductImage(null)}
+            >
+              <Ionicons name="close" size={18} color={theme.danger} />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Ionicons name="camera-outline" size={40} color={theme.subText} />
-            <Text style={{ color: theme.subText, marginTop: 8 }}>No photo added</Text>
+            <Ionicons name="image-outline" size={36} color={theme.subText} />
+            <Text style={{ color: theme.subText, marginTop: 8, fontWeight: '500', fontSize: 12 }}>No photo</Text>
           </View>
         )}
-        
+
         {Platform.OS === 'web' && (
-          <TouchableOpacity 
-            style={[styles.uploadBtn, { backgroundColor: theme.primary }]} 
+          <TouchableOpacity
+            style={[styles.uploadBtn, { backgroundColor: theme.primaryDeep }]}
             onPress={triggerFileUpload}
+            activeOpacity={0.85}
           >
-            <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-            <Text style={styles.uploadBtnText}> {productImage ? 'Change Photo' : 'Upload Photo'}</Text>
+            <Ionicons name="cloud-upload-outline" size={16} color="#FFFFFF" />
+            <Text style={styles.uploadBtnText}>{productImage ? 'Change Photo' : 'Upload Photo'}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Product Name */}
       <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.text }]}>Product Name *</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>PRODUCT NAME *</Text>
         <TextInput
           style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
           value={name}
@@ -225,75 +238,61 @@ export default function ManualAddScreen({ navigation, route }) {
 
       {/* Category */}
       <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.text }]}>Category</Text>
-        <TouchableOpacity style={[styles.selectButton, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={() => setShowCategoryModal(true)}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons
-              name={CATEGORIES.find(c => c.label === category)?.icon || 'ellipsis-horizontal'}
-              size={20} color={theme.primary} style={{ marginRight: 10 }}
-            />
+        <Text style={[styles.label, { color: theme.subText }]}>CATEGORY</Text>
+        <TouchableOpacity
+          style={[styles.selectButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => setShowCategoryModal(true)}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={[styles.categoryIconBg, { backgroundColor: theme.primarySoft }]}>
+              <Ionicons
+                name={CATEGORIES.find(c => c.label === category)?.icon || 'ellipsis-horizontal'}
+                size={16} color={theme.primaryDeep}
+              />
+            </View>
             <Text style={[styles.selectText, { color: theme.text }]}>{category}</Text>
           </View>
-          <Ionicons name="chevron-down" size={20} color={theme.subText} />
+          <Ionicons name="chevron-down" size={18} color={theme.subText} />
         </TouchableOpacity>
       </View>
 
-      {/* Category Modal */}
-      <Modal visible={showCategoryModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Category</Text>
-            <FlatList
-              data={CATEGORIES}
-              keyExtractor={(item) => item.label}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.modalItem, { borderBottomColor: theme.border }, category === item.label && { backgroundColor: theme.card }]}
-                  onPress={() => { setCategory(item.label); setShowCategoryModal(false); }}
-                >
-                  <Ionicons name={item.icon} size={22} color={category === item.label ? theme.primary : theme.subText} />
-                  <Text style={[styles.modalItemText, { color: theme.text }, category === item.label && { color: theme.primary, fontWeight: 'bold' }]}>
-                    {item.label}
-                  </Text>
-                  {category === item.label && <Ionicons name="checkmark" size={20} color={theme.primary} />}
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity style={[styles.modalClose, { backgroundColor: theme.card }]} onPress={() => setShowCategoryModal(false)}>
-              <Text style={{ color: theme.text, fontSize: 16 }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Quantity */}
       <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.text }]}>Quantity / Size</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>QUANTITY / SIZE</Text>
         <View style={styles.qtyRow}>
-          <TouchableOpacity onPress={() => handleQtyChange(-1)} style={[styles.qtyControl, { backgroundColor: theme.card }]}>
-            <Ionicons name="remove" size={24} color={theme.text} />
+          <TouchableOpacity
+            onPress={() => handleQtyChange(-1)}
+            style={[styles.qtyControl, { backgroundColor: theme.card, borderColor: theme.border }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="remove" size={22} color={theme.text} />
           </TouchableOpacity>
-          
+
           <TextInput
-            style={[styles.input, { flex: 1, backgroundColor: theme.card, color: theme.text, borderColor: theme.border, textAlign: 'center' }]}
+            style={[styles.input, styles.qtyInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
             value={quantity}
             onChangeText={setQuantity}
-            placeholder="e.g. 1, 500g, 2 boxes"
+            placeholder="e.g. 1, 500g"
             placeholderTextColor={theme.subText}
           />
 
-          <TouchableOpacity onPress={() => handleQtyChange(1)} style={[styles.qtyControl, { backgroundColor: theme.card }]}>
-            <Ionicons name="add" size={24} color={theme.text} />
+          <TouchableOpacity
+            onPress={() => handleQtyChange(1)}
+            style={[styles.qtyControl, { backgroundColor: theme.primaryDeep, borderColor: theme.primaryDeep }]}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Expiration Date Picker */}
+      {/* Expiry */}
       <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.text }]}>Expiration Date *</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>EXPIRATION DATE *</Text>
         {Platform.OS === 'web' ? (
           <View style={[styles.dateInputWrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Ionicons name="calendar" size={20} color={theme.primary} style={{ marginRight: 10 }} />
+            <Ionicons name="calendar" size={18} color={theme.primaryDeep} style={{ marginRight: 10 }} />
             <input
               type="date"
               value={expiryDate}
@@ -302,11 +301,11 @@ export default function ManualAddScreen({ navigation, route }) {
                 backgroundColor: 'transparent',
                 color: theme.text,
                 border: 'none',
-                fontSize: 16,
+                fontSize: 15,
                 flex: 1,
                 outline: 'none',
                 fontFamily: 'inherit',
-                colorScheme: theme.isDark ? 'dark' : 'light'
+                colorScheme: theme.isDark ? 'dark' : 'light',
               }}
             />
           </View>
@@ -320,103 +319,214 @@ export default function ManualAddScreen({ navigation, route }) {
           />
         )}
 
-        {/* AI prediction hint */}
         {name.trim().length > 0 && (
           <TouchableOpacity
-            style={styles.predictionBanner}
+            style={[styles.predictionBanner, { backgroundColor: theme.warningSoft, borderColor: theme.warning + '55' }]}
             onPress={() => setExpiryDate(getDefaultExpiry(name))}
+            activeOpacity={0.85}
           >
-            <Ionicons name="bulb" size={16} color="#f39c12" />
-            <Text style={styles.predictionText}>
+            <Ionicons name="bulb" size={15} color={theme.warning} />
+            <Text style={[styles.predictionText, { color: theme.warning }]}>
               AI suggests ~{predictExpiry(name)} days for "{name.trim()}" — tap to use
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* Status Preview */}
         {statusPreview && (
-          <View style={[styles.statusPreview, { borderColor: getStatusColor(statusPreview) }]}>
+          <View style={[styles.statusPreview, { borderColor: getStatusColor(statusPreview), backgroundColor: getStatusColor(statusPreview) + '15' }]}>
+            <Ionicons
+              name={
+                statusPreview === 'expired' ? 'alert-circle' :
+                statusPreview === 'urgent' ? 'warning' :
+                statusPreview === 'soon' ? 'time' :
+                'checkmark-circle'
+              }
+              size={16}
+              color={getStatusColor(statusPreview)}
+            />
             <Text style={[styles.statusPreviewText, { color: getStatusColor(statusPreview) }]}>
-              {statusPreview === 'expired' ? '⚠️ Already expired!' :
-               statusPreview === 'urgent' ? `🔴 Expires in ${daysLeft} day(s) — use immediately` :
-               statusPreview === 'soon' ? `🟡 Expires in ${daysLeft} days — plan to use soon` :
-               `🟢 Safe — ${daysLeft} days until expiry`}
+              {statusPreview === 'expired' ? 'Already expired!' :
+                statusPreview === 'urgent' ? `Expires in ${daysLeft} day(s) — use immediately` :
+                  statusPreview === 'soon' ? `Expires in ${daysLeft} days — plan to use soon` :
+                    `Safe — ${daysLeft} days until expiry`}
             </Text>
           </View>
         )}
       </View>
 
-      {/* Save Button */}
+      {/* Save */}
       <TouchableOpacity
-        style={[styles.saveButton, loading && { opacity: 0.6 }]}
+        style={[styles.saveButton, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }, loading && { opacity: 0.6 }]}
         onPress={handleSave}
         disabled={loading}
+        activeOpacity={0.85}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color="#FFFFFF" />
         ) : (
           <>
-            <Ionicons name="save" size={20} color="#fff" />
-            <Text style={styles.saveButtonText}>  {editMode ? 'Update Item' : 'Save Item'}</Text>
+            <Ionicons name="save-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.saveButtonText}>{editMode ? 'Update Item' : 'Save Item'}</Text>
           </>
         )}
       </TouchableOpacity>
+
+      {/* Category Modal */}
+      <Modal visible={showCategoryModal} transparent animationType="slide" onRequestClose={() => setShowCategoryModal(false)}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.modalOverlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Category</Text>
+            <FlatList
+              data={CATEGORIES}
+              keyExtractor={(item) => item.label}
+              renderItem={({ item }) => {
+                const selected = category === item.label;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: theme.divider },
+                      selected && { backgroundColor: theme.primarySoft },
+                    ]}
+                    onPress={() => { setCategory(item.label); setShowCategoryModal(false); }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.modalItemIcon, { backgroundColor: selected ? theme.primary : theme.surface }]}>
+                      <Ionicons
+                        name={item.icon}
+                        size={18}
+                        color={selected ? '#FFFFFF' : theme.subText}
+                      />
+                    </View>
+                    <Text style={[styles.modalItemText, { color: selected ? theme.primaryDeep : theme.text, fontWeight: selected ? '700' : '500' }]}>
+                      {item.label}
+                    </Text>
+                    {selected && <Ionicons name="checkmark" size={20} color={theme.primaryDeep} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+            <TouchableOpacity
+              style={[styles.modalClose, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={() => setShowCategoryModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1 },
   scannedBanner: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a2e1a',
-    padding: 12, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#2ECC7133',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    padding: 12, borderRadius: 12, marginBottom: 18,
+    borderWidth: 1,
   },
-  scannedBannerText: { color: '#2ECC71', fontSize: 13, fontFamily: 'monospace' },
-  section: { marginBottom: 20 },
-  label: { fontSize: 16, marginBottom: 8, fontWeight: '600' },
+  scannedBannerText: { fontSize: 13, fontFamily: 'monospace', fontWeight: '700' },
+
+  section: { marginBottom: 18 },
+  label: {
+    fontSize: 11, marginBottom: 8, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
   input: {
-    padding: 15, borderRadius: 10, fontSize: 16, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 14,
+    borderRadius: 12, fontSize: 15, borderWidth: 1,
   },
+
   dateInputWrapper: {
-    padding: 15, borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center',
   },
   selectButton: {
-    padding: 15, borderRadius: 10, borderWidth: 1, flexDirection: 'row',
-    justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 12, borderWidth: 1,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  selectText: { fontSize: 16 },
+  categoryIconBg: {
+    width: 30, height: 30, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  selectText: { fontSize: 15, fontWeight: '600' },
+
   predictionBanner: {
-    flexDirection: 'row', alignItems: 'center', marginTop: 8,
-    backgroundColor: '#2a2a1e', padding: 10, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 10, paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: 10, borderWidth: 1,
   },
-  predictionText: { color: '#f39c12', fontSize: 13, marginLeft: 8, fontStyle: 'italic', flex: 1 },
+  predictionText: { fontSize: 12, fontWeight: '600', flex: 1 },
+
   statusPreview: {
-    marginTop: 8, padding: 10, borderRadius: 8, borderWidth: 1,
-    backgroundColor: '#1a1a1a',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 10, padding: 12, borderRadius: 10, borderWidth: 1.5,
   },
-  statusPreviewText: { fontSize: 13, fontWeight: '600' },
+  statusPreviewText: { fontSize: 13, fontWeight: '700', flex: 1 },
+
   saveButton: {
-    backgroundColor: '#2ECC71', padding: 16, borderRadius: 12,
-    alignItems: 'center', marginTop: 10, marginBottom: 40,
-    flexDirection: 'row', justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 16, borderRadius: 14, marginTop: 14, gap: 10,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8,
   },
-  saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  qtyControl: { width: 50, height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
-  imageSection: { alignItems: 'center', marginVertical: 20 },
-  imagePreviewContainer: { position: 'relative' },
-  imagePreview: { width: 140, height: 140, borderRadius: 15, objectFit: 'cover', backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
-  removeImageBtn: { position: 'absolute', top: -10, right: -10, backgroundColor: '#fff', borderRadius: 12 },
-  imagePlaceholder: { width: 140, height: 140, borderRadius: 15, borderStyle: 'dashed', borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  uploadBtn: { 
-    marginTop: 15, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, 
-    flexDirection: 'row', alignItems: 'center', cursor: 'pointer' 
+  qtyControl: {
+    width: 50, height: 50, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1,
   },
-  uploadBtnText: { color: '#fff', fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '70%' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  modalItem: { padding: 15, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  modalItemText: { fontSize: 16, flex: 1 },
-  modalClose: { padding: 15, alignItems: 'center', marginTop: 10, borderRadius: 10 },
+  qtyInput: { flex: 1, textAlign: 'center', fontWeight: '700' },
+
+  imageSection: { alignItems: 'center', marginBottom: 22 },
+  imagePreviewContainer: { position: 'relative' },
+  imagePreview: {
+    width: 130, height: 130, borderRadius: 16,
+    backgroundColor: '#FFFFFF', borderWidth: 1,
+  },
+  removeImageBtn: {
+    position: 'absolute', top: -8, right: -8,
+    width: 30, height: 30, borderRadius: 15,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1,
+  },
+  imagePlaceholder: {
+    width: 130, height: 130, borderRadius: 16,
+    borderStyle: 'dashed', borderWidth: 1.5,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  uploadBtn: {
+    marginTop: 14, paddingHorizontal: 18, paddingVertical: 10,
+    borderRadius: 22, gap: 6,
+    flexDirection: 'row', alignItems: 'center',
+  },
+  uploadBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+
+  savedIconBg: {
+    width: 110, height: 110, borderRadius: 55,
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: '75%' },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 14, textAlign: 'center' },
+  modalItem: {
+    paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 10,
+  },
+  modalItemIcon: {
+    width: 34, height: 34, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalItemText: { fontSize: 15, flex: 1 },
+  modalClose: {
+    paddingVertical: 14, alignItems: 'center', marginTop: 12,
+    borderRadius: 12, borderWidth: 1,
+  },
 });

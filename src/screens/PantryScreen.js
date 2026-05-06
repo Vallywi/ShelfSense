@@ -38,7 +38,6 @@ export default function PantryScreen({ navigation }) {
 
   useEffect(() => { loadPantries(); }, [loadPantries]);
 
-  // Auto-refresh every 5 seconds
   useEffect(() => {
     const interval = setInterval(loadPantries, 5000);
     return () => clearInterval(interval);
@@ -104,8 +103,8 @@ export default function PantryScreen({ navigation }) {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={{ color: theme.subText, marginTop: 12 }}>Loading pantries...</Text>
+        <ActivityIndicator size="large" color={theme.primaryDeep} />
+        <Text style={{ color: theme.subText, marginTop: 12, fontWeight: '500' }}>Loading pantries...</Text>
       </View>
     );
   }
@@ -114,65 +113,81 @@ export default function PantryScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadPantries(); }} tintColor={theme.primary} />}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); loadPantries(); }}
+            tintColor={theme.primaryDeep}
+            colors={[theme.primaryDeep]}
+          />
+        }
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>Your Pantries</Text>
           <Text style={[styles.subtitle, { color: theme.subText }]}>
-            {pantries.length === 0 ? 'Create or join a pantry to get started' : `${pantries.length} pantry${pantries.length !== 1 ? 's' : ''} connected`}
+            {pantries.length === 0
+              ? 'Create or join a pantry to get started'
+              : `${pantries.length} pantry${pantries.length !== 1 ? 's' : ''} connected`}
           </Text>
         </View>
 
-        {/* Pantry List */}
         {pantries.map((pantry) => {
           const isOwner = pantry.ownerId === currentUser?.id;
           return (
             <TouchableOpacity
               key={pantry.id}
-              style={[styles.pantryCard, { backgroundColor: theme.card }]}
+              style={[styles.pantryCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}
               onPress={() => navigation.navigate('PantryDetail', { pantryId: pantry.id, pantryName: pantry.name })}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <View style={[styles.pantryIcon, { backgroundColor: theme.primary + '22' }]}>
-                <Ionicons name="home" size={28} color={theme.primary} />
+              <View style={[styles.pantryIcon, { backgroundColor: theme.primarySoft }]}>
+                <Ionicons name="home" size={26} color={theme.primaryDeep} />
               </View>
               <View style={styles.pantryInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={[styles.pantryName, { color: theme.text }]}>{pantry.name}</Text>
+                <View style={styles.pantryNameRow}>
+                  <Text style={[styles.pantryName, { color: theme.text }]} numberOfLines={1}>{pantry.name}</Text>
                   {isOwner && (
-                    <View style={[styles.ownerBadge, { backgroundColor: theme.primary + '22' }]}>
-                      <Text style={[styles.ownerBadgeText, { color: theme.primary }]}>Owner</Text>
+                    <View style={[styles.ownerBadge, { backgroundColor: theme.accentSoft }]}>
+                      <Ionicons name="star" size={10} color={theme.accentDeep} />
+                      <Text style={[styles.ownerBadgeText, { color: theme.accentDeep }]}>Owner</Text>
                     </View>
                   )}
                 </View>
                 <View style={styles.pantryMeta}>
-                  <View style={[styles.codeBadge, { backgroundColor: theme.background }]}>
-                    <Ionicons name="key-outline" size={12} color={theme.subText} />
-                    <Text style={[styles.codeText, { color: theme.subText }]}> {pantry.inviteCode}</Text>
+                  <View style={[styles.codeBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Ionicons name="key-outline" size={11} color={theme.subText} />
+                    <Text style={[styles.codeText, { color: theme.subText }]}>{pantry.inviteCode}</Text>
                   </View>
-                  <Text style={[styles.memberCount, { color: theme.subText }]}>
-                    👥 {pantry.members?.length || 1} member{(pantry.members?.length || 1) !== 1 ? 's' : ''}
-                  </Text>
-                  <Text style={[styles.memberCount, { color: theme.subText }]}>
-                    📦 {pantry.itemCount || 0} items
-                  </Text>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="people-outline" size={12} color={theme.subText} />
+                    <Text style={[styles.metaText, { color: theme.subText }]}>
+                      {pantry.members?.length || 1}
+                    </Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="cube-outline" size={12} color={theme.subText} />
+                    <Text style={[styles.metaText, { color: theme.subText }]}>
+                      {pantry.itemCount || 0} items
+                    </Text>
+                  </View>
                 </View>
               </View>
               {isOwner && (
-                <TouchableOpacity onPress={() => handleDelete(pantry.id)} style={styles.deleteBtn}>
-                  <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+                <TouchableOpacity onPress={() => handleDelete(pantry.id)} style={styles.deleteBtn} activeOpacity={0.7}>
+                  <Ionicons name="trash-outline" size={18} color={theme.danger} />
                 </TouchableOpacity>
               )}
-              <Ionicons name="chevron-forward" size={20} color={theme.subText} style={{ marginLeft: 4 }} />
+              <Ionicons name="chevron-forward" size={20} color={theme.subText} />
             </TouchableOpacity>
           );
         })}
 
-        {/* Empty State */}
         {pantries.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={{ fontSize: 60 }}>🏠</Text>
+            <View style={[styles.emptyIconBg, { backgroundColor: theme.primarySoft }]}>
+              <Ionicons name="home-outline" size={56} color={theme.primary} />
+            </View>
             <Text style={[styles.emptyTitle, { color: theme.text }]}>No Pantries Yet</Text>
             <Text style={[styles.emptySubtitle, { color: theme.subText }]}>
               Create a private pantry or join one with an invite code
@@ -180,39 +195,38 @@ export default function PantryScreen({ navigation }) {
           </View>
         )}
 
-        {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
+            style={[styles.primaryBtn, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
             onPress={() => { setError(''); setShowCreateModal(true); }}
             activeOpacity={0.85}
           >
-            <Ionicons name="add-circle-outline" size={22} color="#fff" />
+            <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
             <Text style={styles.primaryBtnText}>Create New Pantry</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.secondaryBtn, { borderColor: theme.primary, backgroundColor: theme.card }]}
+            style={[styles.secondaryBtn, { borderColor: theme.primary, backgroundColor: theme.primarySoft }]}
             onPress={() => { setError(''); setShowJoinModal(true); }}
             activeOpacity={0.85}
           >
-            <Ionicons name="people-outline" size={22} color={theme.primary} />
-            <Text style={[styles.secondaryBtnText, { color: theme.primary }]}>Join a Pantry</Text>
+            <Ionicons name="people-outline" size={22} color={theme.primaryDeep} />
+            <Text style={[styles.secondaryBtnText, { color: theme.primaryDeep }]}>Join a Pantry</Text>
           </TouchableOpacity>
         </View>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Create Pantry Modal */}
       <Modal visible={showCreateModal} transparent animationType="slide" onRequestClose={() => setShowCreateModal(false)}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.modalOverlay }]}>
           <View style={[styles.modalSheet, { backgroundColor: theme.card }]}>
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
             <Text style={[styles.modalTitle, { color: theme.text }]}>Create a New Pantry</Text>
-            <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Give your pantry a name and share the invite code</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.subText }]}>
+              Give your pantry a name and share the invite code
+            </Text>
             <TextInput
-              style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
               placeholder="e.g. Home Pantry, Dorm Room..."
               placeholderTextColor={theme.subText}
               value={newPantryName}
@@ -220,15 +234,22 @@ export default function PantryScreen({ navigation }) {
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalCancel, { borderColor: theme.border }]} onPress={() => setShowCreateModal(false)}>
+              <TouchableOpacity
+                style={[styles.modalCancel, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                onPress={() => setShowCreateModal(false)}
+              >
                 <Text style={[styles.modalCancelText, { color: theme.subText }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalConfirm, { backgroundColor: theme.primary }, (!newPantryName.trim() || saving) && { opacity: 0.5 }]}
+                style={[
+                  styles.modalConfirm,
+                  { backgroundColor: theme.primaryDeep },
+                  (!newPantryName.trim() || saving) && { opacity: 0.5 },
+                ]}
                 onPress={handleCreate}
                 disabled={!newPantryName.trim() || saving}
               >
-                <Text style={styles.modalConfirmText}>{saving ? 'Creating…' : 'Create'}</Text>
+                <Text style={styles.modalConfirmText}>{saving ? 'Creating...' : 'Create'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -237,14 +258,16 @@ export default function PantryScreen({ navigation }) {
 
       {/* Join Pantry Modal */}
       <Modal visible={showJoinModal} transparent animationType="slide" onRequestClose={() => setShowJoinModal(false)}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.modalOverlay }]}>
           <View style={[styles.modalSheet, { backgroundColor: theme.card }]}>
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
             <Text style={[styles.modalTitle, { color: theme.text }]}>Join a Pantry</Text>
-            <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Enter the 6-character invite code from the pantry owner</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.subText }]}>
+              Enter the 6-character invite code from the pantry owner
+            </Text>
             <TextInput
-              style={[styles.modalInput, styles.codeInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-              placeholder="e.g. ABC123"
+              style={[styles.modalInput, styles.codeInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+              placeholder="ABC123"
               placeholderTextColor={theme.subText}
               value={joinCode}
               onChangeText={setJoinCode}
@@ -253,15 +276,22 @@ export default function PantryScreen({ navigation }) {
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalCancel, { borderColor: theme.border }]} onPress={() => setShowJoinModal(false)}>
+              <TouchableOpacity
+                style={[styles.modalCancel, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                onPress={() => setShowJoinModal(false)}
+              >
                 <Text style={[styles.modalCancelText, { color: theme.subText }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalConfirm, { backgroundColor: theme.primary }, (joinCode.length < 4 || saving) && { opacity: 0.5 }]}
+                style={[
+                  styles.modalConfirm,
+                  { backgroundColor: theme.primaryDeep },
+                  (joinCode.length < 4 || saving) && { opacity: 0.5 },
+                ]}
                 onPress={handleJoin}
                 disabled={joinCode.length < 4 || saving}
               >
-                <Text style={styles.modalConfirmText}>{saving ? 'Joining…' : 'Join'}</Text>
+                <Text style={styles.modalConfirmText}>{saving ? 'Joining...' : 'Join'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -273,58 +303,74 @@ export default function PantryScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { padding: 24, paddingBottom: 16 },
+  header: { padding: 22, paddingBottom: 16 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: 0.3 },
-  subtitle: { fontSize: 14, marginTop: 4 },
+  subtitle: { fontSize: 14, marginTop: 6, fontWeight: '500' },
+
   pantryCard: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 16, marginBottom: 12,
-    padding: 16, borderRadius: 16,
-    elevation: 2, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
+    padding: 14, borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+    gap: 4,
   },
   pantryIcon: {
-    width: 52, height: 52, borderRadius: 26,
-    justifyContent: 'center', alignItems: 'center', marginRight: 14,
+    width: 50, height: 50, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
   pantryInfo: { flex: 1 },
-  pantryName: { fontSize: 17, fontWeight: '700', marginBottom: 6 },
-  ownerBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  ownerBadgeText: { fontSize: 11, fontWeight: '700' },
-  pantryMeta: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  codeBadge: {
-    flexDirection: 'row', alignItems: 'center',
+  pantryNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  pantryName: { fontSize: 16, fontWeight: '700', flexShrink: 1 },
+  ownerBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
-  codeText: { fontSize: 12, fontFamily: 'monospace', fontWeight: '600' },
-  memberCount: { fontSize: 12 },
+  ownerBadgeText: { fontSize: 10, fontWeight: '700' },
+  pantryMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  codeBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    borderWidth: 1,
+  },
+  codeText: { fontSize: 11, fontFamily: 'monospace', fontWeight: '700', letterSpacing: 0.5 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 12, fontWeight: '500' },
   deleteBtn: { padding: 8 },
+
   emptyState: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', marginTop: 12 },
+  emptyIconBg: {
+    width: 110, height: 110, borderRadius: 55,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 18,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '800', marginTop: 4 },
   emptySubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 },
+
   actions: { padding: 16, gap: 12 },
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 18, borderRadius: 14, gap: 10,
-    elevation: 4, shadowColor: '#2ECC71', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3, shadowRadius: 6,
+    paddingVertical: 16, borderRadius: 14, gap: 10,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8,
   },
-  primaryBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  primaryBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
   secondaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 18, borderRadius: 14, borderWidth: 2, gap: 10,
+    paddingVertical: 16, borderRadius: 14, borderWidth: 1.5, gap: 10,
   },
-  secondaryBtnText: { fontSize: 17, fontWeight: '700' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc', alignSelf: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
-  modalSubtitle: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
+  secondaryBtnText: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 40 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 22 },
+  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 6 },
+  modalSubtitle: { fontSize: 13, lineHeight: 19, marginBottom: 20, fontWeight: '500' },
   modalInput: { borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, marginBottom: 20 },
-  codeInput: { textAlign: 'center', fontSize: 24, fontWeight: '800', letterSpacing: 6 },
-  modalButtons: { flexDirection: 'row', gap: 12 },
+  codeInput: { textAlign: 'center', fontSize: 22, fontWeight: '800', letterSpacing: 6 },
+  modalButtons: { flexDirection: 'row', gap: 10 },
   modalCancel: { flex: 1, borderWidth: 1.5, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  modalCancelText: { fontSize: 16, fontWeight: '600' },
+  modalCancelText: { fontSize: 15, fontWeight: '600' },
   modalConfirm: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  modalConfirmText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  modalConfirmText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
 });

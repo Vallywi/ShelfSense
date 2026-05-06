@@ -3,13 +3,16 @@ import { Platform } from 'react-native';
 
 // Auto-detect API URL
 const getBaseUrl = () => {
-  if (Platform.OS === 'web') {
-    // In browser, use same origin (works on Vercel)
-    if (typeof window !== 'undefined' && window.location) {
-      return window.location.origin;
-    }
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    const { hostname, port, origin } = window.location;
+    // When running Expo dev (localhost:8081 / :19006), the API server lives on :3000
+    const isExpoDev = (hostname === 'localhost' || hostname === '127.0.0.1') &&
+      (port === '8081' || port === '19006');
+    if (isExpoDev) return `http://${hostname}:3000`;
+    // Otherwise use same origin (works on Vercel deploy)
+    return origin;
   }
-  // Local development fallback
+  // Native local development fallback
   return 'http://localhost:3000';
 };
 
@@ -111,6 +114,14 @@ export async function removeMemberAPI(pantryId, memberId) {
   return apiRequest('/api/pantries?action=remove', {
     method: 'DELETE',
     body: JSON.stringify({ pantryId, memberId }),
+  });
+}
+
+// ─── Chef Assistant API ──────────────────────────────────────────
+export async function chatWithChef(message, items = [], history = []) {
+  return apiRequest('/api/chef', {
+    method: 'POST',
+    body: JSON.stringify({ message, items, history }),
   });
 }
 

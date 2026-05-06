@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Platform, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -6,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../config/ThemeContext';
 import { useAuth } from '../config/AuthContext';
-// Screens
+
 import OnboardingScreen from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import RecipesScreen from '../screens/RecipesScreen';
@@ -22,6 +23,7 @@ import SurveyScreen from '../screens/SurveyScreen';
 import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ChefAssistantScreen from '../screens/ChefAssistantScreen';
 import { useTutorial } from '../config/TutorialContext';
 
 const Stack = createNativeStackNavigator();
@@ -31,7 +33,7 @@ const getCustomDarkTheme = (theme) => ({
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: theme.primary,
+    primary: theme.primaryDeep,
     background: theme.background,
     card: theme.card,
     text: theme.text,
@@ -43,13 +45,37 @@ const getCustomLightTheme = (theme) => ({
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: theme.primary,
+    primary: theme.primaryDeep,
     background: theme.background,
     card: theme.card,
     text: theme.text,
     border: theme.border,
   },
 });
+
+// ── Floating circular Chef tab button ───────────────────────────
+function ChefTabButton({ children, onPress, accessibilityState }) {
+  const { theme } = useTheme();
+  const focused = accessibilityState?.selected;
+  return (
+    <View style={chefStyles.outerWrap} pointerEvents="box-none">
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.85}
+        style={[
+          chefStyles.button,
+          {
+            backgroundColor: focused ? theme.primary : theme.primaryDeep,
+            shadowColor: theme.primaryDeep,
+            borderColor: theme.background,
+          },
+        ]}
+      >
+        {children}
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 function MainTabs() {
   const { theme } = useTheme();
@@ -62,16 +88,59 @@ function MainTabs() {
           else if (route.name === 'Recipes') iconName = focused ? 'restaurant' : 'restaurant-outline';
           else if (route.name === 'Pantries') iconName = focused ? 'file-tray-stacked' : 'file-tray-stacked-outline';
           else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
+          else if (route.name === 'Chef') iconName = 'sparkles';
+          const iconSize = route.name === 'Chef' ? 26 : (focused ? 24 : 22);
+          const iconColor = route.name === 'Chef' ? '#FFFFFF' : color;
+          return <Ionicons name={iconName} size={iconSize} color={iconColor} />;
         },
         tabBarActiveTintColor: theme.navActive,
         tabBarInactiveTintColor: theme.navInactive,
-        headerStyle: { backgroundColor: theme.navBackground },
+        tabBarStyle: {
+          backgroundColor: theme.navBackground,
+          borderTopColor: theme.divider,
+          borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 84 : 64,
+          paddingTop: 6,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: theme.isDark ? 0.3 : 0.06,
+          shadowRadius: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: 0.3,
+          marginTop: 2,
+        },
+        headerStyle: {
+          backgroundColor: theme.navBackground,
+          borderBottomColor: theme.divider,
+          borderBottomWidth: 1,
+          shadowColor: 'transparent',
+          elevation: 0,
+        },
         headerTintColor: theme.navText,
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: '800',
+          letterSpacing: 0.3,
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Smart Pantry' }} />
       <Tab.Screen name="Recipes" component={RecipesScreen} />
+      <Tab.Screen
+        name="Chef"
+        component={ChefAssistantScreen}
+        options={{
+          title: 'Chef Sage',
+          headerShown: false,
+          tabBarLabel: () => null,
+          tabBarButton: (props) => <ChefTabButton {...props} />,
+        }}
+      />
       <Tab.Screen name="Pantries" component={PantryScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
@@ -91,8 +160,21 @@ export default function AppNavigator() {
   }, []);
 
   if (isFirstTime === null || (currentUser && hasSeenTutorial === null)) {
-    return null; 
+    return null;
   }
+
+  const stackHeaderStyle = {
+    backgroundColor: theme.navBackground,
+    borderBottomColor: theme.divider,
+    borderBottomWidth: 1,
+    shadowColor: 'transparent',
+    elevation: 0,
+  };
+  const stackHeaderTitleStyle = {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  };
 
   return (
     <NavigationContainer theme={isDarkMode ? getCustomDarkTheme(theme) : getCustomLightTheme(theme)}>
@@ -113,13 +195,75 @@ export default function AppNavigator() {
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="PantryDetail" component={PantryDetailScreen} options={{ headerShown: false }} />
             <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="AddGroceries" component={AddGroceriesScreen} options={{ headerShown: true, title: 'Add Groceries', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
-            <Stack.Screen name="CameraScanner" component={CameraScreen} options={{ headerShown: true, title: 'Scan Barcode', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
-            <Stack.Screen name="ExpiryScan" component={ExpiryScanScreen} options={{ headerShown: true, title: 'Scan Expiry Date', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
-            <Stack.Screen name="ManualAdd" component={ManualAddScreen} options={{ headerShown: true, title: 'Add/Edit Item', headerStyle: { backgroundColor: theme.navBackground }, headerTintColor: theme.navText }} />
+            <Stack.Screen
+              name="AddGroceries"
+              component={AddGroceriesScreen}
+              options={{
+                headerShown: true,
+                title: 'Add Groceries',
+                headerStyle: stackHeaderStyle,
+                headerTintColor: theme.navText,
+                headerTitleStyle: stackHeaderTitleStyle,
+              }}
+            />
+            <Stack.Screen
+              name="CameraScanner"
+              component={CameraScreen}
+              options={{
+                headerShown: true,
+                title: 'Scan Barcode',
+                headerStyle: stackHeaderStyle,
+                headerTintColor: theme.navText,
+                headerTitleStyle: stackHeaderTitleStyle,
+              }}
+            />
+            <Stack.Screen
+              name="ExpiryScan"
+              component={ExpiryScanScreen}
+              options={{
+                headerShown: true,
+                title: 'Scan Expiry Date',
+                headerStyle: stackHeaderStyle,
+                headerTintColor: theme.navText,
+                headerTitleStyle: stackHeaderTitleStyle,
+              }}
+            />
+            <Stack.Screen
+              name="ManualAdd"
+              component={ManualAddScreen}
+              options={{
+                headerShown: true,
+                title: 'Add / Edit Item',
+                headerStyle: stackHeaderStyle,
+                headerTintColor: theme.navText,
+                headerTitleStyle: stackHeaderTitleStyle,
+              }}
+            />
+            <Stack.Screen name="Tutorial" component={TutorialScreen} />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
+const chefStyles = StyleSheet.create({
+  outerWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -22, // pop above tab bar
+    borderWidth: 4,
+    elevation: 10,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+  },
+});

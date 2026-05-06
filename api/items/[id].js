@@ -25,12 +25,14 @@ module.exports = async function handler(req, res) {
 
   // PUT — update item
   if (req.method === 'PUT') {
-    const { name, category, quantity, expiryDate, status } = req.body;
+    const { name, category, quantity, expiryDate, status, imageUrl, nutrition } = req.body;
     if (name !== undefined) db.items[itemIndex].name = name;
     if (category !== undefined) db.items[itemIndex].category = category;
     if (quantity !== undefined) db.items[itemIndex].quantity = quantity;
     if (expiryDate !== undefined) db.items[itemIndex].expiryDate = expiryDate;
     if (status !== undefined) db.items[itemIndex].status = status;
+    if (imageUrl !== undefined) db.items[itemIndex].imageUrl = imageUrl;
+    if (nutrition !== undefined) db.items[itemIndex].nutrition = nutrition;
     await writeDB(db);
     return res.status(200).json({ item: db.items[itemIndex] });
   }
