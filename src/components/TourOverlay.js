@@ -63,7 +63,11 @@ export default function TourOverlay() {
     // Small initial delay so tab switches can settle
     setTimeout(() => tryMeasure(MEASURE_RETRIES), 250);
     return () => { cancelled = true; };
-  }, [tour?.isActive, tour?.currentIndex, tour?.currentStep]);
+    // targetsVersion bumps when any TourTarget mounts/unmounts — re-measure so
+    // the overlay can find a target that registered AFTER the step activated
+    // (typical when the user transitions from one screen to the screen that
+    // hosts the next target).
+  }, [tour?.isActive, tour?.currentIndex, tour?.currentStep, tour?.targetsVersion]);
 
   if (!tour || !tour.isActive || !tour.currentStep) return null;
 

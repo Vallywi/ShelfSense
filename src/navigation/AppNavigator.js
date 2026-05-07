@@ -189,8 +189,13 @@ export default function AppNavigator() {
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         ) : !hasSeenTutorial ? (
+          // New user: only the demographics survey, then straight to Home.
+          // The interactive tour auto-launches on Home for fresh accounts via
+          // the `pendingFirstTour` flag set in AuthContext.register, so the
+          // old "Take the Tour / Skip" launcher screen is no longer in this
+          // path. (Settings → Replay Tutorial still works because TutorialScreen
+          // is registered in the main stack below.)
           <>
-            <Stack.Screen name="Tutorial" component={TutorialScreen} />
             <Stack.Screen name="Survey" component={SurveyScreen} />
           </>
         ) : (

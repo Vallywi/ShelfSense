@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, FlatList, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addItem, updateItem } from '../services/firestore';
-import { predictExpiry, getStatus } from '../services/ai';
+import { predictExpiry, getStatus, formatShelfLife } from '../services/ai';
 import { useTheme } from '../config/ThemeContext';
 import { useToast } from '../config/ToastContext';
 
@@ -27,8 +27,8 @@ function formatDateForInput(date) {
   return `${year}-${month}-${day}`;
 }
 
-function getDefaultExpiry(productName) {
-  const days = predictExpiry(productName || '');
+function getDefaultExpiry(productName, category) {
+  const days = predictExpiry(productName || '', category);
   const d = new Date();
   d.setDate(d.getDate() + days);
   return formatDateForInput(d);
@@ -50,7 +50,7 @@ export default function ManualAddScreen({ navigation, route }) {
     d.setDate(d.getDate() + parseInt(route.params.expiryDays));
     initialExpiry = formatDateForInput(d);
   } else if (initialName) {
-    initialExpiry = getDefaultExpiry(initialName);
+    initialExpiry = getDefaultExpiry(initialName, initialCategory);
   }
 
   const { theme } = useTheme();
@@ -325,12 +325,12 @@ export default function ManualAddScreen({ navigation, route }) {
         {name.trim().length > 0 && (
           <TouchableOpacity
             style={[styles.predictionBanner, { backgroundColor: theme.warningSoft, borderColor: theme.warning + '55' }]}
-            onPress={() => setExpiryDate(getDefaultExpiry(name))}
+            onPress={() => setExpiryDate(getDefaultExpiry(name, category))}
             activeOpacity={0.85}
           >
             <Ionicons name="bulb" size={15} color={theme.warning} />
             <Text style={[styles.predictionText, { color: theme.warning }]}>
-              AI suggests ~{predictExpiry(name)} days for "{name.trim()}" — tap to use
+              AI suggests ~{formatShelfLife(predictExpiry(name, category))} for "{name.trim()}" — tap to use
             </Text>
           </TouchableOpacity>
         )}

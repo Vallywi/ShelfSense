@@ -123,7 +123,9 @@ export default function HomeScreen({ navigation }) {
   // Auto-launch the interactive tour for newly-registered accounts.
   // RegisterScreen → AuthContext.register sets `pendingFirstTour=true`. We
   // wait a beat after Home mounts so TourTarget refs (summary, fab, filter)
-  // have registered with TourContext before the first step tries to highlight them.
+  // have registered with TourContext before the first step tries to highlight
+  // them. Guard against re-starting an already-active tour to avoid resetting
+  // the user back to step 1 mid-flow.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -131,7 +133,9 @@ export default function HomeScreen({ navigation }) {
       if (cancelled || pending !== 'true') return;
       await AsyncStorage.removeItem('pendingFirstTour');
       setTimeout(() => {
-        if (!cancelled) tour?.startTour?.();
+        if (cancelled) return;
+        if (tour?.isActive) return;
+        tour?.startTour?.();
       }, 700);
     })();
     return () => { cancelled = true; };
@@ -415,23 +419,30 @@ export default function HomeScreen({ navigation }) {
           <Text style={[styles.sectionHeading, { color: theme.subText, fontSize: baseFontSize, marginTop: 0, marginBottom: 0 }]}>
             YOUR PANTRY {filteredItems.length !== items.length ? `(${filteredItems.length}/${items.length})` : items.length > 0 ? `(${items.length})` : ''}
           </Text>
-          {items.length > 0 && (
-            <TourTarget id="home-filter">
-              <TouchableOpacity
-                onPress={() => setShowFilters(s => !s)}
-                style={[
-                  styles.filterToggle,
-                  { backgroundColor: filtersActive ? theme.primarySoft : theme.surface, borderColor: filtersActive ? theme.primary : theme.border },
-                ]}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="options-outline" size={14} color={filtersActive ? theme.primaryDeep : theme.subText} />
-                <Text style={[styles.filterToggleText, { color: filtersActive ? theme.primaryDeep : theme.subText }]}>
-                  {showFilters ? 'Hide' : 'Filter'}
-                </Text>
-              </TouchableOpacity>
-            </TourTarget>
-          )}
+          {/* Always render the TourTarget wrapper (even when the pantry is
+              empty) so the tour's home-filter step has something to highlight.
+              The button itself becomes a no-op visual when there's nothing
+              to filter. */}
+          <TourTarget id="home-filter">
+            <TouchableOpacity
+              onPress={() => items.length > 0 && setShowFilters(s => !s)}
+              disabled={items.length === 0}
+              style={[
+                styles.filterToggle,
+                {
+                  backgroundColor: filtersActive ? theme.primarySoft : theme.surface,
+                  borderColor: filtersActive ? theme.primary : theme.border,
+                  opacity: items.length === 0 ? 0.5 : 1,
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="options-outline" size={14} color={filtersActive ? theme.primaryDeep : theme.subText} />
+              <Text style={[styles.filterToggleText, { color: filtersActive ? theme.primaryDeep : theme.subText }]}>
+                {showFilters ? 'Hide' : 'Filter'}
+              </Text>
+            </TouchableOpacity>
+          </TourTarget>
         </View>
 
         {/* Search + filter panel */}

@@ -40,19 +40,161 @@ export async function fetchProductFromBarcode(barcode) {
 }
 
 /**
- * 2. AI Expiry Prediction (if no date given)
+ * 2. Expiry prediction (when the user hasn't given a date)
+ *
+ * Returns the typical shelf life in DAYS for the given product name.
+ * Numbers reflect USDA / FoodKeeper / FDA published guidelines for the
+ * most common form of each item — sealed in original packaging, refrigerated
+ * where applicable. Opened or cooked items are noted explicitly.
+ *
+ * Matching uses the LONGEST key first so e.g. "ground beef" is matched
+ * before "beef", and "buttermilk" before "butter".
  */
-export function predictExpiry(productName) {
-  if (!productName) return 7;
-  const rules = {
-    milk: 7, bread: 5, cooked: 2, canned: 365, noodles: 180,
-    egg: 21, meat: 3, chicken: 3, fish: 2, cheese: 14,
-    yogurt: 10, butter: 30, fruit: 5, vegetable: 7, rice: 365,
-    pasta: 365, sauce: 14, juice: 7, soda: 180,
-  };
-  const nameLower = productName.toLowerCase();
-  const key = Object.keys(rules).find(k => nameLower.includes(k));
-  return key ? rules[key] : 7;
+const SHELF_LIFE_DAYS = {
+  // ── Fresh produce (refrigerated) ──────────────────────
+  'avocado': 5, 'banana': 5, 'strawberry': 5, 'raspberry': 5, 'blackberry': 5,
+  'blueberry': 7, 'mango': 7, 'pineapple': 5, 'grape': 7, 'peach': 5,
+  'plum': 5, 'cherry': 7, 'pear': 14, 'orange': 14, 'lemon': 21,
+  'lime': 21, 'apple': 30, 'watermelon': 7, 'melon': 7, 'kiwi': 14,
+  'tomato': 7, 'cucumber': 7, 'lettuce': 7, 'spinach': 5, 'kale': 7,
+  'broccoli': 7, 'cauliflower': 7, 'cabbage': 21, 'celery': 14,
+  'mushroom': 7, 'bell pepper': 14, 'pepper': 14, 'eggplant': 7,
+  'zucchini': 7, 'asparagus': 5, 'green bean': 7, 'corn': 5,
+  'carrot': 30, 'potato': 30, 'onion': 30, 'garlic': 90, 'ginger': 21,
+  'sweet potato': 21, 'beetroot': 21, 'beet': 21,
+  'fruit': 7, 'vegetable': 7, 'salad': 5, 'herb': 7,
+
+  // ── Dairy ─────────────────────────────────────────────
+  'whole milk': 14, 'skim milk': 14, 'almond milk': 7, 'oat milk': 7,
+  'soy milk': 7, 'condensed milk': 730, 'evaporated milk': 730,
+  'buttermilk': 14, 'milk': 14,
+  'heavy cream': 14, 'whipping cream': 14, 'sour cream': 21, 'cream': 14,
+  'greek yogurt': 21, 'yogurt': 21,
+  'cottage cheese': 14, 'cream cheese': 21, 'mozzarella': 21,
+  'cheddar': 180, 'parmesan': 365, 'feta': 30, 'brie': 14, 'gouda': 90,
+  'cheese': 21,
+  'butter': 60, 'margarine': 90,
+
+  // ── Eggs ──────────────────────────────────────────────
+  'hard boiled egg': 7, 'egg white': 4, 'egg': 35,
+
+  // ── Meat & poultry (raw, refrigerated) ────────────────
+  'ground beef': 2, 'ground pork': 2, 'ground chicken': 2,
+  'ground turkey': 2, 'ground meat': 2,
+  'chicken breast': 2, 'chicken thigh': 2, 'chicken wing': 2,
+  'whole chicken': 2, 'chicken': 2, 'turkey': 2, 'duck': 2,
+  'steak': 5, 'beef': 5, 'pork chop': 5, 'pork': 5, 'lamb': 5, 'veal': 5,
+  'bacon': 7, 'sausage': 7, 'hot dog': 14, 'ham': 7,
+  'salami': 21, 'pepperoni': 21, 'prosciutto': 30, 'deli meat': 5,
+  'meat': 3,
+
+  // ── Fish & seafood (raw, refrigerated) ────────────────
+  'salmon': 2, 'tuna steak': 2, 'shrimp': 2, 'prawn': 2,
+  'crab': 2, 'lobster': 2, 'mussel': 2, 'clam': 2, 'oyster': 2,
+  'fish': 2, 'seafood': 2,
+
+  // ── Canned goods (sealed, pantry) ─────────────────────
+  'canned tuna': 1095, 'canned sardines': 1095, 'canned salmon': 1095,
+  'canned beans': 1095, 'canned corn': 1095, 'canned soup': 730,
+  'canned tomato': 730, 'canned fruit': 540, 'canned vegetable': 730,
+  'corned beef': 1095, 'spam': 1095, 'sardines': 1095,
+  'tuna': 1095, 'canned': 730,
+
+  // ── Bakery ────────────────────────────────────────────
+  'baguette': 3, 'sourdough': 7, 'whole wheat bread': 5, 'tortilla': 14,
+  'pita': 7, 'bagel': 7, 'roll': 5, 'bun': 5, 'croissant': 3,
+  'muffin': 5, 'donut': 3, 'doughnut': 3, 'cake': 5, 'cupcake': 5,
+  'pastry': 5, 'pie': 4, 'bread': 7,
+
+  // ── Pantry staples (dry, sealed) ──────────────────────
+  'white rice': 1825, 'brown rice': 365, 'jasmine rice': 1825,
+  'basmati rice': 1825, 'rice': 1095,
+  'spaghetti': 730, 'macaroni': 730, 'pasta': 730,
+  'instant noodle': 365, 'ramen': 365, 'noodle': 365,
+  'flour': 365, 'whole wheat flour': 180, 'almond flour': 180,
+  'sugar': 1825, 'brown sugar': 730, 'salt': 1825,
+  'oat': 730, 'oats': 730, 'oatmeal': 730, 'cereal': 365, 'granola': 180,
+  'quinoa': 730, 'couscous': 730, 'lentil': 730, 'bean': 730,
+
+  // ── Beverages ─────────────────────────────────────────
+  'orange juice': 14, 'apple juice': 14, 'juice': 14,
+  'soda': 270, 'cola': 270, 'sparkling water': 270, 'water': 730,
+  'beer': 180, 'wine': 1095, 'spirit': 3650, 'vodka': 3650, 'whiskey': 3650,
+  'coffee bean': 365, 'ground coffee': 180, 'instant coffee': 730, 'coffee': 365,
+  'green tea': 730, 'tea': 730, 'energy drink': 270, 'sports drink': 270,
+
+  // ── Sauces, condiments & spreads ──────────────────────
+  'ketchup': 365, 'mustard': 365, 'mayonnaise': 60, 'mayo': 60,
+  'soy sauce': 730, 'fish sauce': 730, 'oyster sauce': 365,
+  'hot sauce': 730, 'sriracha': 730, 'tabasco': 1825,
+  'vinegar': 1825, 'olive oil': 540, 'cooking oil': 365, 'oil': 365,
+  'jam': 365, 'jelly': 365, 'marmalade': 365, 'honey': 3650,
+  'peanut butter': 540, 'almond butter': 365, 'nutella': 365,
+  'salsa': 60, 'pesto': 14, 'gravy': 60, 'sauce': 60,
+
+  // ── Snacks (sealed) ───────────────────────────────────
+  'chocolate': 365, 'dark chocolate': 730, 'candy': 365,
+  'chips': 60, 'crisps': 60, 'pretzel': 90, 'popcorn': 180,
+  'cracker': 90, 'cookie': 30, 'biscuit': 60, 'gum': 365,
+  'nuts': 365, 'almond': 365, 'cashew': 365, 'walnut': 180,
+  'raisin': 365, 'dried fruit': 180,
+
+  // ── Frozen ────────────────────────────────────────────
+  'ice cream': 60, 'frozen pizza': 180, 'frozen vegetable': 365,
+  'frozen meat': 180, 'frozen': 180,
+
+  // ── Cooked / leftovers ────────────────────────────────
+  'leftover': 4, 'cooked rice': 5, 'cooked chicken': 4,
+  'cooked pasta': 5, 'cooked': 4, 'soup': 4, 'stew': 4,
+};
+
+const CATEGORY_FALLBACK_DAYS = {
+  'Fresh Produce': 7,
+  'Dairy & Eggs': 14,
+  'Meat & Poultry': 3,
+  'Fish & Seafood': 2,
+  'Bakery': 7,
+  'Grains & Rice': 365,
+  'Canned Goods': 730,
+  'Snacks': 90,
+  'Beverages': 180,
+  'Others': 14,
+};
+
+// Cache the longest-first key list so we don't re-sort on every call.
+const _SORTED_KEYS = Object.keys(SHELF_LIFE_DAYS).sort((a, b) => b.length - a.length);
+
+export function predictExpiry(productName, category) {
+  if (productName) {
+    const name = productName.toLowerCase().trim();
+    for (const key of _SORTED_KEYS) {
+      // word-boundary-ish match: substring is fine here because longer keys
+      // are tested first ("ground beef" before "beef", "buttermilk" before "butter")
+      if (name.includes(key)) return SHELF_LIFE_DAYS[key];
+    }
+  }
+  if (category && CATEGORY_FALLBACK_DAYS[category] != null) {
+    return CATEGORY_FALLBACK_DAYS[category];
+  }
+  return 7;
+}
+
+/**
+ * Format a day-count as a friendly duration: "5 days", "3 weeks", "2 months", "1 year".
+ */
+export function formatShelfLife(days) {
+  if (days == null) return '';
+  if (days < 14) return `${days} day${days === 1 ? '' : 's'}`;
+  if (days < 60) {
+    const w = Math.round(days / 7);
+    return `${w} week${w === 1 ? '' : 's'}`;
+  }
+  if (days < 365) {
+    const m = Math.round(days / 30);
+    return `${m} month${m === 1 ? '' : 's'}`;
+  }
+  const y = Math.round(days / 365);
+  return `${y} year${y === 1 ? '' : 's'}`;
 }
 
 /**

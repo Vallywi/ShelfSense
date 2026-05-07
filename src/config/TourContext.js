@@ -81,7 +81,11 @@ export function TourProvider({ children }) {
   const [tabSwitchRequest, setTabSwitchRequest] = useState(null); // tab name to switch to
   const [hasCompleted, setHasCompleted] = useState(null);
   const targetsRef = useRef(new Map()); // id -> { ref, layout }
-  const [, setTick] = useState(0); // force re-render when targets register
+  // Bumped on every register/unregister. Exposed via context so TourOverlay
+  // can re-measure when a screen mounts AFTER the tour started (e.g. when the
+  // user transitions from TutorialScreen -> Home and the home-summary target
+  // only becomes available a frame later).
+  const [targetsVersion, setTargetsVersion] = useState(0);
 
   useEffect(() => {
     AsyncStorage.getItem(TOUR_DONE_KEY).then(v => setHasCompleted(v === 'true'));
@@ -89,11 +93,12 @@ export function TourProvider({ children }) {
 
   const registerTarget = useCallback((id, ref) => {
     targetsRef.current.set(id, { ref });
-    setTick(t => t + 1);
+    setTargetsVersion(v => v + 1);
   }, []);
 
   const unregisterTarget = useCallback((id) => {
     targetsRef.current.delete(id);
+    setTargetsVersion(v => v + 1);
   }, []);
 
   const getTargetRef = useCallback((id) => {
@@ -157,6 +162,7 @@ export function TourProvider({ children }) {
     steps,
     hasCompleted,
     tabSwitchRequest,
+    targetsVersion,
     consumeTabSwitch,
     registerTarget,
     unregisterTarget,
