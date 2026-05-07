@@ -123,27 +123,35 @@ export default function HomeScreen({ navigation }) {
   // Auto-launch the interactive tour for newly-registered accounts.
   // RegisterScreen → AuthContext.register sets `pendingFirstTour=true`.
   //
-  // IMPORTANT: this effect must run exactly once on Home mount.
   // Don't depend on `tour` — its object reference changes whenever
-  // TourProvider re-renders (which happens every time a TourTarget
-  // registers, due to targetsVersion bumping). Re-running the effect would
-  // cancel the pending setTimeout via cleanup, and the tour would never start.
-  // We read the latest tour functions via a ref instead.
+  // TourProvider re-renders (every time a TourTarget registers via
+  // targetsVersion bumps). We read the latest tour functions via a ref.
+  //
+  // Don't clear the flag synchronously either: in React 18 Strict Mode the
+  // cleanup-then-setup verification runs the effect twice on mount. If we
+  // cleared the flag in the first run, the second run would see it missing
+  // and bail. Instead we ONLY clear the flag from inside the timer
+  // callback, right before starting the tour. A `hasFiredRef` makes the
+  // tour-start happen at most once even if multiple timer paths race.
   const tourRef = useRef(tour);
   useEffect(() => { tourRef.current = tour; });
+  const hasFiredTourRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
     let timerId;
     (async () => {
+      if (hasFiredTourRef.current) return;
       const pending = await AsyncStorage.getItem('pendingFirstTour');
       if (cancelled || pending !== 'true') return;
-      await AsyncStorage.removeItem('pendingFirstTour');
       // Wait a beat so TourTarget refs (summary, fab, filter) have mounted
       // and registered with TourContext before the first step tries to
       // highlight them.
-      timerId = setTimeout(() => {
+      timerId = setTimeout(async () => {
+        if (hasFiredTourRef.current) return;
         const t = tourRef.current;
         if (!t || t.isActive) return;
+        hasFiredTourRef.current = true;
+        await AsyncStorage.removeItem('pendingFirstTour');
         t.startTour?.();
       }, 700);
     })();
