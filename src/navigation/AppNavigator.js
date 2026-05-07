@@ -85,13 +85,17 @@ function MainTabs() {
   const tour = useTour();
   const navRef = React.useRef(null);
 
-  // When the tour requests a tab switch, navigate to it
+  // When the tour requests a tab switch, navigate to it.
+  // Only depend on the request value, not the whole `tour` object — its
+  // identity changes on every TourProvider render (targetsVersion bumps),
+  // which would cause this effect to re-fire constantly and cycle through
+  // unnecessary navigates / consumeTabSwitch calls.
   React.useEffect(() => {
     if (tour?.tabSwitchRequest && navRef.current) {
       navRef.current.navigate(tour.tabSwitchRequest);
       tour.consumeTabSwitch();
     }
-  }, [tour?.tabSwitchRequest, tour]);
+  }, [tour?.tabSwitchRequest]);
 
   return (
     <Tab.Navigator

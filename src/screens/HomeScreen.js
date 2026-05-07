@@ -121,25 +121,37 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   // Auto-launch the interactive tour for newly-registered accounts.
-  // RegisterScreen → AuthContext.register sets `pendingFirstTour=true`. We
-  // wait a beat after Home mounts so TourTarget refs (summary, fab, filter)
-  // have registered with TourContext before the first step tries to highlight
-  // them. Guard against re-starting an already-active tour to avoid resetting
-  // the user back to step 1 mid-flow.
+  // RegisterScreen → AuthContext.register sets `pendingFirstTour=true`.
+  //
+  // IMPORTANT: this effect must run exactly once on Home mount.
+  // Don't depend on `tour` — its object reference changes whenever
+  // TourProvider re-renders (which happens every time a TourTarget
+  // registers, due to targetsVersion bumping). Re-running the effect would
+  // cancel the pending setTimeout via cleanup, and the tour would never start.
+  // We read the latest tour functions via a ref instead.
+  const tourRef = useRef(tour);
+  useEffect(() => { tourRef.current = tour; });
   useEffect(() => {
     let cancelled = false;
+    let timerId;
     (async () => {
       const pending = await AsyncStorage.getItem('pendingFirstTour');
       if (cancelled || pending !== 'true') return;
       await AsyncStorage.removeItem('pendingFirstTour');
-      setTimeout(() => {
-        if (cancelled) return;
-        if (tour?.isActive) return;
-        tour?.startTour?.();
+      // Wait a beat so TourTarget refs (summary, fab, filter) have mounted
+      // and registered with TourContext before the first step tries to
+      // highlight them.
+      timerId = setTimeout(() => {
+        const t = tourRef.current;
+        if (!t || t.isActive) return;
+        t.startTour?.();
       }, 700);
     })();
-    return () => { cancelled = true; };
-  }, [tour]);
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+    };
+  }, []);
 
   // FAB pulse ring animation
   const fabPulse = useRef(new Animated.Value(0)).current;
