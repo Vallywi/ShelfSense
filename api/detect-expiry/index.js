@@ -11,8 +11,16 @@ module.exports = async (req, res) => {
   }
 
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        error: 'GEMINI_API_KEY not configured. Set it in your .env file or Vercel environment.',
+      });
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    // Match the model used by api/chef.js so both endpoints rely on the same
+    // verified-working API key + model combination.
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // Clean base64 string
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
@@ -23,23 +31,33 @@ Read ALL text visible in the image, then identify the expiration / best-before /
 
 ACCEPTABLE FORMATS (extract whichever appears):
 - Numeric: DD/MM/YYYY, MM/DD/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, YYYY/MM/DD
-- Short numeric: DD/MM/YY, MM/YY, MM/YYYY, MM-YY
-- With month name: "21 JUL 2026", "JUL 21 2026", "July 21, 2026", "21 July 2026"
-- Word-only month + year: "JUL 2026", "July 2026", "Nov-26", "NOV 26"
-- With prefix words: "EXP", "EXPIRY", "EXPIRES", "EXP DATE", "BEST BEFORE", "BEST BY",
-  "BB", "BBE", "USE BY", "UB", "CONSUME BY", "E:", "EXP:", "EXP."
+- Short numeric: DD/MM/YY, MM/YY, MM/YYYY, MM-YY, DDMMYY, DDMMYYYY
+- With month name (spaces optional): "21 JUL 2026", "JUL 21 2026", "July 21, 2026",
+  "21 July 2026", "23MAY26", "23MAY2026", "MAY2326", "23-MAY-26"
+- Word-only month + year: "JUL 2026", "July 2026", "Nov-26", "NOV 26", "MAY26"
+- With prefix words / abbreviations (any of these introduce an expiry date):
+  "EXP", "EXPIRY", "EXPIRES", "EXP DATE", "EXP:", "EXP.", "E:", "ED", "ED:",
+  "BEST BEFORE", "BEST BY", "BB", "BB:", "BBE", "USE BY", "UB", "CONSUME BY"
 
 EXTRACTION RULES (apply in order):
-1. If multiple dates exist, prefer one near an EXP-style keyword above.
-2. Otherwise prefer the LATEST (furthest in the future) date — manufacturing dates
-   ("MFG", "MFD", "PROD", "PACKED ON") are always earlier than expiration.
+1. The label may have BOTH a manufacturing date and an expiration date stacked.
+   Manufacturing prefixes are: "MFG", "MFD", "PD", "PD:", "PROD", "PACKED ON",
+   "PACKING DATE". Treat these as NON-expiration dates.
+   Expiration prefixes are listed above (EXP, ED, BB, USE BY, etc.).
+   If both exist, RETURN ONLY THE EXPIRATION DATE.
+2. If no prefixes are present, prefer the LATEST (furthest in the future) date —
+   manufacturing dates are always earlier than expiration.
 3. If the date is stacked (two lines), the lower line is usually the EXP date.
 4. If only month + year are given, use the LAST day of that month.
-5. If only year is given, return null — that's not enough information.
+5. If only year is given, return null.
 6. Ambiguous DD/MM vs MM/DD: assume DD/MM (international), unless the first number
-   is > 12 (then it's the day) or the product context strongly suggests US.
+   is > 12 (then it's the day).
 7. 2-digit years: assume 20YY (e.g., "26" -> 2026).
 8. Output the final date in ISO YYYY-MM-DD form.
+
+EXAMPLE: Image shows "PD:23APR26" on top line and "ED:23MAY26" on bottom line.
+PD = production date (ignore). ED = expiry date (use this).
+Output: {"date": "2026-05-23", "confidence": 0.95, "raw_text": "ED:23MAY26"}.
 
 Return ONLY a JSON object, no markdown fences, no commentary:
 {

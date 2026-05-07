@@ -77,25 +77,30 @@ export default function ExpiryScanScreen({ navigation, route }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageData }),
       });
-      if (!response.ok) throw new Error('AI Vision request failed');
 
-      const result = await response.json();
-      setOcrResult(result.raw_text);
-      setConfidence(result.confidence);
+      const bodyText = await response.text();
+      let result;
+      try { result = JSON.parse(bodyText); } catch { result = null; }
 
-      if (result.date) {
+      if (!response.ok) {
+        const detail = result?.error || result?.details || bodyText.slice(0, 240);
+        throw new Error(`Server ${response.status}: ${detail}`);
+      }
+
+      setOcrResult(result?.raw_text || '(no text returned)');
+      setConfidence(result?.confidence ?? 0);
+
+      if (result?.date) {
         const dateObj = new Date(result.date);
-        if (!isNaN(dateObj.getTime())) {
-          setDetectedDate(dateObj);
-        } else {
-          setDetectedDate(null);
-        }
+        setDetectedDate(!isNaN(dateObj.getTime()) ? dateObj : null);
       } else {
         setDetectedDate(null);
       }
     } catch (err) {
       console.error('AI Vision error:', err);
-      setOcrResult('AI failed to process image. Please try again or enter manually.');
+      // Surface the real reason instead of the generic message so we can
+      // tell whether the API errored, timed out, or the model misbehaved.
+      setOcrResult(`AI request failed: ${err.message || 'unknown error'}`);
     }
     setProcessing(false);
   };
