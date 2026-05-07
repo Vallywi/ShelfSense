@@ -55,8 +55,10 @@ export default function ExpiryScanScreen({ navigation, route }) {
 
       const vw = video.videoWidth;
       const vh = video.videoHeight;
-      const cropW = vw * 0.8;
-      const cropH = vh * 0.3;
+      // Crop a generous central region. The earlier 80% x 30% strip was too narrow
+      // and clipped dates that weren't perfectly centered vertically.
+      const cropW = vw * 0.9;
+      const cropH = vh * 0.55;
       const cropX = (vw - cropW) / 2;
       const cropY = (vh - cropH) / 2;
 
@@ -168,7 +170,7 @@ export default function ExpiryScanScreen({ navigation, route }) {
             />
             <div style={{
               position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              width: '80%', height: 70, border: `2px solid ${theme.primary}`, borderRadius: 10,
+              width: '90%', height: '55%', border: `2px solid ${theme.primary}`, borderRadius: 12,
               pointerEvents: 'none',
               boxShadow: `0 0 0 9999px rgba(0,0,0,0.5)`,
             }} />
@@ -177,7 +179,7 @@ export default function ExpiryScanScreen({ navigation, route }) {
               backgroundColor: 'rgba(0,0,0,0.7)', padding: '10px 14px', borderRadius: 12,
               color: theme.primary, fontWeight: 700, fontSize: 13, textAlign: 'center',
             }}>
-              Align the expiry date inside the box
+              Frame the expiry date area inside the box
             </div>
           </div>
 
