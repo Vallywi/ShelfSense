@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     padding: 22, borderRadius: 18, width: '100%',
     marginTop: 22, alignItems: 'center', borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 14, elevation: 4,
   },
   productIconBg: {
     width: 80, height: 80, borderRadius: 20,

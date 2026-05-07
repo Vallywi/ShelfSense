@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   ingredientBox: {
     borderRadius: 14, overflow: 'hidden', marginBottom: 24,
     borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 3,
   },
   ingredientRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start', gap: 14,
     padding: 16, borderRadius: 14, marginBottom: 10,
     borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 3,
   },
   stepNumber: {
     width: 30, height: 30, borderRadius: 15,

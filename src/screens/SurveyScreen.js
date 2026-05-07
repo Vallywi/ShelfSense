@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     borderRadius: 18, padding: 20, marginBottom: 14,
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 3,
   },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 },
   sectionIcon: {

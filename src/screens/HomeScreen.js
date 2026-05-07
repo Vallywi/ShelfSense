@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, Animated, Platform, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { subscribeToItems, deleteItem, updateItemQuantity, consumeItem } from '../services/firestore';
 import { getRecommendation, suggestRecipe } from '../services/ai';
 import { useTheme } from '../config/ThemeContext';
 import { useTutorial } from '../config/TutorialContext';
+import { useTour } from '../config/TourContext';
+import { useAuth } from '../config/AuthContext';
 import { checkAndNotify } from '../services/notifications';
 import { PantryItemSkeleton, SummaryCardSkeleton } from '../components/Skeleton';
 import TourTarget from '../components/TourTarget';
@@ -28,6 +32,24 @@ const getStatusColor = (status, theme) => {
     case 'expired': return theme.danger;
     default: return theme.safe;
   }
+};
+
+const getTimeGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const getTimeIcon = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'sunny';
+  if (h < 18) return 'partly-sunny';
+  return 'moon';
+};
+
+const formatLongDate = () => {
+  return new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 };
 
 const RECIPE_SUGGESTIONS = [
@@ -66,7 +88,13 @@ function getAIRecommendation(items, theme) {
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { userProfile } = useTutorial() || {};
+  const { currentUser } = useAuth() || {};
+  const tour = useTour();
+  // Prefer the user's first name from the auth profile (set at register).
+  // Fall back to demographics profile, then to a generic greeting.
+  const displayName = (currentUser?.name || userProfile?.name || '').trim().split(/\s+/)[0];
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -91,6 +119,40 @@ export default function HomeScreen({ navigation }) {
     });
     return () => unsubscribe && unsubscribe();
   }, []);
+
+  // Auto-launch the interactive tour for newly-registered accounts.
+  // RegisterScreen → AuthContext.register sets `pendingFirstTour=true`. We
+  // wait a beat after Home mounts so TourTarget refs (summary, fab, filter)
+  // have registered with TourContext before the first step tries to highlight them.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pending = await AsyncStorage.getItem('pendingFirstTour');
+      if (cancelled || pending !== 'true') return;
+      await AsyncStorage.removeItem('pendingFirstTour');
+      setTimeout(() => {
+        if (!cancelled) tour?.startTour?.();
+      }, 700);
+    })();
+    return () => { cancelled = true; };
+  }, [tour]);
+
+  // FAB pulse ring animation
+  const fabPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(fabPulse, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [fabPulse]);
+  const pulseScale = fabPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
+  const pulseOpacity = fabPulse.interpolate({ inputRange: [0, 0.1, 1], outputRange: [0, 0.45, 0] });
 
   const expiringSoonCount = items.filter(i => i.status === 'soon' || i.status === 'urgent').length;
   const expiredCount = items.filter(i => i.status === 'expired').length;
@@ -159,7 +221,7 @@ export default function HomeScreen({ navigation }) {
     return (
       <TouchableOpacity
         key={item.id}
-        style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}
+        style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: theme.cardShadow }]}
         onPress={() => { setSelectedItem(item); setShowDetail(true); }}
         activeOpacity={0.85}
       >
@@ -197,54 +259,107 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  const dotColor = theme.isDark ? 'rgba(157,179,168,0.10)' : 'rgba(31,59,48,0.06)';
+  const texturedBg = Platform.OS === 'web'
+    ? {
+        backgroundColor: theme.background,
+        backgroundImage: `radial-gradient(${dotColor} 1px, transparent 1px)`,
+        backgroundSize: '18px 18px',
+      }
+    : { backgroundColor: theme.background };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, texturedBg]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
 
-        {/* Greeting */}
-        {userProfile && (
-          <View style={[styles.greetingBanner, { backgroundColor: theme.primarySoft, borderColor: theme.primary + '55' }]}>
-            <View style={[styles.greetingIcon, { backgroundColor: theme.primary }]}>
-              <Ionicons name="leaf" size={16} color="#FFFFFF" />
+        {/* Curved hero header */}
+        <View style={[styles.heroHeader, { backgroundColor: theme.primaryDeep, paddingTop: 24 + insets.top }]}>
+          <View style={styles.heroHeaderInner}>
+            <View style={styles.heroBrandLeft}>
+              <View style={styles.heroLogoWrap}>
+                <Image
+                  source={require('../../assets/ShelfSense_Logo.png')}
+                  style={styles.heroLogoImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <View>
+                <Text style={[styles.heroBrandTitle, { color: '#FFFFFF' }]}>ShelfSense</Text>
+                <Text style={styles.heroBrandSubtitle}>Smart Pantry</Text>
+              </View>
             </View>
-            <Text style={[styles.greetingText, { color: theme.primaryDeep, fontSize: baseFontSize }]}>
-              {items.length === 0
-                ? 'Welcome back! Your pantry is empty.'
-                : `Welcome back! Tracking ${items.length} item${items.length !== 1 ? 's' : ''}.`}
-            </Text>
+            <View style={[styles.heroBrandPill, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+              <Ionicons name="leaf" size={12} color="#FFFFFF" />
+              <Text style={styles.heroBrandPillText}>fresh</Text>
+            </View>
           </View>
-        )}
+        </View>
+
+        {/* Hero greeting card overlapping the curved header */}
+        <View style={[styles.heroCard, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: theme.cardShadow }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.heroGreetingLabel, { color: theme.subText }]}>
+              {getTimeGreeting()}{displayName ? ',' : ''}
+            </Text>
+            <Text style={[styles.heroName, { color: theme.text }]} numberOfLines={1}>
+              {displayName || 'Welcome back'}
+            </Text>
+            <Text style={[styles.heroDate, { color: theme.subText }]}>{formatLongDate()}</Text>
+            <View style={[styles.heroStatPill, { backgroundColor: expiringSoonCount > 0 ? theme.warningSoft : theme.primarySoft }]}>
+              <Ionicons
+                name={expiringSoonCount > 0 ? 'time' : 'basket-outline'}
+                size={13}
+                color={expiringSoonCount > 0 ? theme.warning : theme.primaryDeep}
+              />
+              <Text
+                style={[
+                  styles.heroStatText,
+                  { color: expiringSoonCount > 0 ? theme.warning : theme.primaryDeep, fontSize: baseFontSize - 1 },
+                ]}
+              >
+                {items.length === 0
+                  ? 'Your pantry is empty — tap + to start'
+                  : expiringSoonCount > 0
+                    ? `${expiringSoonCount} item${expiringSoonCount !== 1 ? 's' : ''} expiring soon`
+                    : `${items.length} item${items.length !== 1 ? 's' : ''} in your pantry`}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.heroIconCircle, { backgroundColor: theme.primarySoft }]}>
+            <Ionicons name={getTimeIcon()} size={30} color={theme.primaryDeep} />
+          </View>
+        </View>
 
         {/* Summary Cards */}
         <TourTarget id="home-summary" style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
-            <View style={[styles.summaryIcon, { backgroundColor: theme.primarySoft }]}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.primarySoft, borderColor: theme.primary + '55', boxShadow: theme.cardShadow }]}>
+            <View style={[styles.summaryIcon, { backgroundColor: theme.card }]}>
               <Ionicons name="basket" size={18} color={theme.primaryDeep} />
             </View>
-            <Text style={[styles.summaryNumber, { color: theme.text }]}>{items.length}</Text>
+            <Text style={[styles.summaryNumber, { color: theme.primaryDeep }]}>{items.length}</Text>
             <Text style={[styles.summaryLabel, { color: theme.subText }]}>Total</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
-            <View style={[styles.summaryIcon, { backgroundColor: theme.warningSoft }]}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.warningSoft, borderColor: theme.warning + '55', boxShadow: theme.cardShadow }]}>
+            <View style={[styles.summaryIcon, { backgroundColor: theme.card }]}>
               <Ionicons name="time" size={18} color={theme.warning} />
             </View>
-            <Text style={[styles.summaryNumber, { color: theme.text }]}>{expiringSoonCount}</Text>
+            <Text style={[styles.summaryNumber, { color: theme.warning }]}>{expiringSoonCount}</Text>
             <Text style={[styles.summaryLabel, { color: theme.subText }]}>Expiring</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
-            <View style={[styles.summaryIcon, { backgroundColor: theme.dangerSoft }]}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.dangerSoft, borderColor: theme.danger + '55', boxShadow: theme.cardShadow }]}>
+            <View style={[styles.summaryIcon, { backgroundColor: theme.card }]}>
               <Ionicons name="alert-circle" size={18} color={theme.danger} />
             </View>
-            <Text style={[styles.summaryNumber, { color: theme.text }]}>{expiredCount}</Text>
+            <Text style={[styles.summaryNumber, { color: theme.danger }]}>{expiredCount}</Text>
             <Text style={[styles.summaryLabel, { color: theme.subText }]}>Expired</Text>
           </View>
         </TourTarget>
 
         {/* AI Recommendation */}
         {aiRec && (
-          <View style={[styles.aiCard, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
-            <View style={[styles.aiIconBg, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name={aiRec.icon} size={22} color={theme.primaryDeep} />
+          <View style={[styles.aiCard, { backgroundColor: theme.card, borderColor: theme.primary + '55', boxShadow: theme.cardShadow }]}>
+            <View style={[styles.aiIconBg, { backgroundColor: theme.primaryDeep }]}>
+              <Ionicons name={aiRec.icon} size={22} color="#FFFFFF" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.aiLabel, { color: theme.primaryDeep }]}>
@@ -257,7 +372,7 @@ export default function HomeScreen({ navigation }) {
 
         {/* Recipe idea */}
         {recipeSuggestion && (
-          <View style={[styles.recipeCard, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
+          <View style={[styles.recipeCard, { backgroundColor: theme.accentSoft, borderColor: theme.accent, boxShadow: theme.cardShadow }]}>
             <Text style={styles.recipeEmoji}>{recipeSuggestion.emoji}</Text>
             <View style={{ flex: 1 }}>
               <Text style={[styles.recipeLabel, { color: theme.accentDeep }]}>Recipe Idea</Text>
@@ -269,12 +384,12 @@ export default function HomeScreen({ navigation }) {
         )}
 
         {/* Insights */}
-        <View style={[styles.insightsRow, { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme.shadowOpacity }]}>
+        <View style={[styles.insightsRow, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: theme.cardShadow }]}>
           <View style={styles.insightItem}>
             <View style={[styles.insightIcon, { backgroundColor: theme.safeSoft }]}>
               <Ionicons name="shield-checkmark" size={18} color={theme.safe} />
             </View>
-            <Text style={[styles.insightNum, { color: theme.text }]}>{savedCount}</Text>
+            <Text style={[styles.insightNum, { color: theme.safe }]}>{savedCount}</Text>
             <Text style={[styles.insightLabel, { color: theme.subText, fontSize: baseFontSize - 2 }]}>Saved</Text>
           </View>
           <View style={[styles.insightDivider, { backgroundColor: theme.divider }]} />
@@ -282,7 +397,7 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.insightIcon, { backgroundColor: theme.dangerSoft }]}>
               <Ionicons name="close-circle" size={18} color={theme.danger} />
             </View>
-            <Text style={[styles.insightNum, { color: theme.text }]}>{expiredCount}</Text>
+            <Text style={[styles.insightNum, { color: theme.danger }]}>{expiredCount}</Text>
             <Text style={[styles.insightLabel, { color: theme.subText, fontSize: baseFontSize - 2 }]}>Expired</Text>
           </View>
           <View style={[styles.insightDivider, { backgroundColor: theme.divider }]} />
@@ -290,7 +405,7 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.insightIcon, { backgroundColor: theme.accentSoft }]}>
               <Ionicons name="cash" size={18} color={theme.accentDeep} />
             </View>
-            <Text style={[styles.insightNum, { color: theme.text }]}>₱{estimatedSaved}</Text>
+            <Text style={[styles.insightNum, { color: theme.accentDeep }]}>₱{estimatedSaved}</Text>
             <Text style={[styles.insightLabel, { color: theme.subText, fontSize: baseFontSize - 2 }]}>Est. Saved</Text>
           </View>
         </View>
@@ -497,6 +612,17 @@ export default function HomeScreen({ navigation }) {
 
       {/* FAB */}
       <TourTarget id="home-fab" style={styles.fabWrap}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.fabPulseRing,
+            {
+              backgroundColor: theme.primary,
+              opacity: pulseOpacity,
+              transform: [{ scale: pulseScale }],
+            },
+          ]}
+        />
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}
           onPress={() => navigation.navigate('AddGroceries')}
@@ -672,26 +798,123 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  greetingBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginHorizontal: 14, marginTop: 14, padding: 12, borderRadius: 14,
+  // Curved hero header (the colored band behind the title)
+  heroHeader: {
+    paddingTop: 24,
+    paddingBottom: 70,
+    paddingHorizontal: 18,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  heroHeaderInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroBrandLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroLogoWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  heroLogoImage: {
+    width: '125%',
+    height: '125%',
+  },
+  heroBrandSubtitle: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  heroBrandTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+  },
+  heroBrandPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  heroBrandPillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // Hero greeting card overlapping the curved header
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginHorizontal: 14,
+    marginTop: -50,
+    padding: 16,
+    borderRadius: 20,
     borderWidth: 1,
   },
-  greetingIcon: {
-    width: 28, height: 28, borderRadius: 14,
-    justifyContent: 'center', alignItems: 'center',
+  heroGreetingLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
-  greetingText: { flex: 1, fontWeight: '600' },
+  heroName: {
+    fontSize: 22,
+    fontWeight: '800',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    marginBottom: 2,
+  },
+  heroDate: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  heroStatPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  heroStatText: {
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  heroIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   summaryRow: { flexDirection: 'row', paddingHorizontal: 14, paddingTop: 14, gap: 10 },
   summaryCard: {
     flex: 1, padding: 14, borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 1,
+    elevation: 2,
   },
   summaryIcon: {
     width: 36, height: 36, borderRadius: 18,
@@ -705,10 +928,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 14, marginTop: 14, padding: 14,
     borderRadius: 16, borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 1,
+    elevation: 2,
   },
   aiIconBg: {
     width: 42, height: 42, borderRadius: 21,
@@ -721,6 +941,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 14, marginTop: 12, padding: 14,
     borderRadius: 16, borderWidth: 1,
+    elevation: 2,
   },
   recipeEmoji: { fontSize: 32 },
   recipeLabel: { fontWeight: '700', marginBottom: 3, fontSize: 12, letterSpacing: 0.5 },
@@ -730,10 +951,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
     marginHorizontal: 14, marginTop: 12, padding: 14, borderRadius: 16,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 1,
+    elevation: 2,
   },
   insightItem: { alignItems: 'center', gap: 4, flex: 1 },
   insightIcon: {
@@ -812,10 +1030,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 1,
+    elevation: 2,
   },
   statusBar: { width: 4, alignSelf: 'stretch' },
   productThumb: { width: 56, height: 56, borderRadius: 12, marginLeft: 10 },
@@ -837,6 +1052,8 @@ const styles = StyleSheet.create({
 
   fabWrap: {
     position: 'absolute', bottom: 25, right: 20,
+    width: 60, height: 60,
+    alignItems: 'center', justifyContent: 'center',
   },
   fab: {
     width: 60, height: 60,
@@ -844,6 +1061,11 @@ const styles = StyleSheet.create({
     elevation: 8,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 8,
+  },
+  fabPulseRing: {
+    position: 'absolute',
+    width: 60, height: 60,
+    borderRadius: 30,
   },
 
   sheetOverlay: { flex: 1, justifyContent: 'flex-end' },

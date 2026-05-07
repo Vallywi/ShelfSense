@@ -51,7 +51,8 @@ export const lightTheme = {
 
   // Shadows
   shadow: '#000000',
-  shadowOpacity: 0.06,
+  shadowOpacity: 0.18,
+  cardShadow: '0px 2px 6px rgba(0, 0, 0, 0.10)',
 
   // Navigation
   navBackground: '#FFFFFF',
@@ -107,7 +108,8 @@ export const darkTheme = {
 
   // Shadows
   shadow: '#000000',
-  shadowOpacity: 0.25,
+  shadowOpacity: 0.32,
+  cardShadow: '0px 2px 6px rgba(0, 0, 0, 0.35)',
 
   // Navigation
   navBackground: '#1F2D27',

@@ -131,7 +131,7 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Smart Pantry' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Smart Pantry', headerShown: false }} />
       <Tab.Screen name="Recipes" component={RecipesScreen} />
       <Tab.Screen
         name="Chef"

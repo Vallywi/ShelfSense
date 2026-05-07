@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: 18, overflow: 'hidden',
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 }, shadowRadius: 8, elevation: 2,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 14, elevation: 4,
   },
   imageWrap: { position: 'relative' },
   recipeImage: { width: '100%', height: 150 },

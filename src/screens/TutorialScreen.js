@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
 
   featureCard: {
     width: '100%', padding: 16, borderRadius: 18, borderWidth: 1, marginBottom: 24,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 3,
   },
   featureLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 12 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 7 },

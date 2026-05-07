@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, Image,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,14 +48,18 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.hero}>
           <View style={[styles.heroBackdrop, { backgroundColor: theme.primarySoft }]} />
           <View style={[styles.heroAccent, { backgroundColor: theme.accentSoft }]} />
-          <View style={[styles.heroLogo, { backgroundColor: theme.primaryDeep, shadowColor: theme.primaryDeep }]}>
-            <Ionicons name="leaf" size={28} color="#FFFFFF" />
+          <View style={[styles.heroLogo, { backgroundColor: '#FFFFFF', shadowColor: theme.primaryDeep }]}>
+            <Image
+              source={require('../../assets/ShelfSense_Logo.png')}
+              style={styles.heroLogoImage}
+              resizeMode="contain"
+            />
           </View>
           <View style={[styles.heroBadgeTopLeft, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Ionicons name="basket" size={12} color={theme.primaryDeep} />
+            <Ionicons name="basket" size={18} color={theme.primaryDeep} />
           </View>
           <View style={[styles.heroBadgeBottomRight, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Ionicons name="sparkles" size={12} color={theme.accentDeep} />
+            <Ionicons name="sparkles" size={18} color={theme.accentDeep} />
           </View>
         </View>
 
@@ -159,28 +163,30 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 28, justifyContent: 'center', paddingTop: 50, paddingBottom: 40 },
 
   hero: {
-    width: 110, height: 110, alignSelf: 'center', marginBottom: 18,
+    width: 175, height: 175, alignSelf: 'center', marginBottom: 24,
     position: 'relative',
   },
   heroBackdrop: {
-    position: 'absolute', top: 8, left: 8, width: 94, height: 94, borderRadius: 28,
+    position: 'absolute', top: 14, left: 14, width: 150, height: 150, borderRadius: 36,
     transform: [{ rotate: '-8deg' }],
   },
   heroAccent: {
-    position: 'absolute', top: 0, right: 0, width: 60, height: 60, borderRadius: 22,
+    position: 'absolute', top: 0, right: 0, width: 95, height: 95, borderRadius: 28,
     transform: [{ rotate: '10deg' }],
   },
   heroLogo: {
-    position: 'absolute', top: 18, left: 22, width: 68, height: 68, borderRadius: 22,
+    position: 'absolute', top: 28, left: 35, width: 108, height: 108, borderRadius: 28,
     justifyContent: 'center', alignItems: 'center',
-    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
   },
+  heroLogoImage: { width: '130%', height: '130%' },
   heroBadgeTopLeft: {
-    position: 'absolute', top: 2, left: 0, width: 28, height: 28, borderRadius: 10,
+    position: 'absolute', top: 4, left: 0, width: 40, height: 40, borderRadius: 13,
     borderWidth: 1, justifyContent: 'center', alignItems: 'center',
   },
   heroBadgeBottomRight: {
-    position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: 10,
+    position: 'absolute', bottom: 4, right: 4, width: 40, height: 40, borderRadius: 13,
     borderWidth: 1, justifyContent: 'center', alignItems: 'center',
   },
   brandLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 2.5, marginBottom: 8 },

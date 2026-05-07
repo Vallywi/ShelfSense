@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginBottom: 18, padding: 22,
     borderRadius: 18, borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 }, shadowRadius: 8, elevation: 2,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 14, elevation: 4,
   },
   confidenceBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,

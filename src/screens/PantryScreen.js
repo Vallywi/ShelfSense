@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     padding: 14, borderRadius: 16,
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 1,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 3,
     gap: 4,
   },
   pantryIcon: {
