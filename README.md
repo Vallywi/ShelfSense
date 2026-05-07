@@ -1,11 +1,11 @@
 <div align="center">
 
-<img src="https://placehold.co/900x300/1D9E75/ffffff?text=ShelfSense&font=montserrat" alt="ShelfSense Banner" width="100%" />
+<img src="Banner.png" alt="ShelfSense Banner" width="100%" />
 
 <br />
 <br />
 
-# 🥬 ShelfSense
+# <img src="assets/ShelfSense_Logo.png" alt="ShelfSense Logo" height="40" valign="middle" /> ShelfSense
 
 **Smart Pantry & Food Waste Reduction System**
 
@@ -25,7 +25,7 @@
 
 [![iOS](https://img.shields.io/badge/iOS-compatible-lightgrey?style=flat-square&logo=apple)](/)
 [![Android](https://img.shields.io/badge/Android-compatible-lightgrey?style=flat-square&logo=android)](/)
-[![Web](https://img.shields.io/badge/Web-PWA-lightgrey?style=flat-square&logo=googlechrome)](/)
+[![Web](https://img.shields.io/badge/Web-PWA-lightgrey?style=flat-square&logo=googlechrome)](https://shelf-sense-mu.vercel.app/)
 
 </div>
 
@@ -75,15 +75,28 @@ You've probably been here before:
 
 ---
 
+## 🎬 Demo
+
+<div align="center">
+
+[![Watch the Demo](https://img.shields.io/badge/▶_Watch_Demo_Video-1D9E75?style=for-the-badge&logoColor=white)](https://drive.google.com/drive/u/1/folders/1t0c3TO_0bKAZpu4aPH9vhOgoNIjnSH9d)
+&nbsp;&nbsp;
+[![Try Live App](https://img.shields.io/badge/🌐_Try_Live_App-000000?style=for-the-badge&logoColor=white)](https://shelf-sense-mu.vercel.app/)
+
+*A quick walkthrough of scanning, smart recipes, and the AI Chef Assistant in action.*
+*Or jump straight in — try the live web app above.*
+
+</div>
+
+---
+
 ## 📸 Screenshots
 
 <div align="center">
 
-| Pantry Overview | Expiry Tracker | Recipe Suggestions | Chef Sage AI |
+| **Dashboard** | **AI Scanner** | **Smart Recipes** | **AI Chef Assistant** |
 |:---:|:---:|:---:|:---:|
-| <img src="https://placehold.co/200x400/e8f5e9/1D9E75?text=Pantry+View&font=montserrat" /> | <img src="https://placehold.co/200x400/e8f5e9/1D9E75?text=Expiry+Tracker&font=montserrat" /> | <img src="https://placehold.co/200x400/e8f5e9/1D9E75?text=Recipes&font=montserrat" /> | <img src="https://placehold.co/200x400/e8f5e9/1D9E75?text=Chef+Sage&font=montserrat" /> |
-
-> 📷 *Replace placeholders with actual app screenshots*
+| <img src="Dashboard.jpg" /> | <img src="AI_Scanner.jpg" /> | <img src="Smart_Recipes.jpg" /> | <img src="Chef_Sage.jpg" /> |
 
 </div>
 
@@ -96,9 +109,61 @@ You've probably been here before:
 | 📦 **Pantry at a glance** | See everything you have, what's expiring soon, and what to use first |
 | 📷 **Barcode & expiry scanning** | Scan barcodes or let AI read expiry dates — even when labels are worn or unclear |
 | 🍳 **Smart recipe suggestions** | Get recipe ideas built around what you already have, prioritizing near-expiry items |
-| 🤖 **Chef Sage AI assistant** | Ask *"what can I cook tonight?"* and get personalized answers based on your actual pantry |
+| 🤖 **AI Chef Assistant** | Ask *"what can I cook tonight?"* and get personalized answers based on your actual pantry |
 | 🔔 **Expiry alerts** | Get notified before food goes bad so you can act on it, not throw it out |
 | 📱 **Works everywhere** | Available on iOS, Android, and as a Web PWA — one app, all platforms |
+
+---
+
+## 🧠 How It Works
+
+ShelfSense turns your pantry into a self-aware system in four simple steps:
+
+<div align="center">
+
+**📷 Scan → 📦 Track → 🔔 Alert → 🍳 Cook**
+
+</div>
+
+<br />
+
+1. **📷 Scan** — Point your camera at a barcode or expiry date. Gemini reads even faded, blurry, or worn-out labels.
+2. **📦 Track** — Items are added to your pantry automatically — quantity, expiry, and category, all auto-filled.
+3. **🔔 Alert** — As food approaches expiry, ShelfSense surfaces it on your dashboard *before* it's too late.
+4. **🍳 Cook** — Ask the AI Chef Assistant *"what can I make tonight?"* and get recipes built around what you actually have.
+
+> **The result:** less waste, less guesswork, less spending.
+
+---
+
+## 🏆 Why ShelfSense?
+
+There are recipe apps. There are grocery trackers. **ShelfSense is the awareness layer between your pantry and your plate.**
+
+<div align="center">
+
+| | 📝 Sticky Notes | 🍳 Recipe Apps | 📊 Spreadsheets | 💚 **ShelfSense** |
+|---|:---:|:---:|:---:|:---:|
+| Knows what's in your pantry | ❌ | ❌ | ⚠️ Manual | ✅ |
+| Reads expiry dates from labels | ❌ | ❌ | ❌ | ✅ AI-powered |
+| Suggests recipes from *your* food | ❌ | ❌ | ❌ | ✅ |
+| Alerts before food expires | ❌ | ❌ | ❌ | ✅ |
+| Personalized AI assistant | ❌ | ❌ | ❌ | ✅ |
+| Works offline | ⚠️ | ⚠️ | ✅ | ✅ |
+
+</div>
+
+Other tools help you *cook* or *list*. ShelfSense helps you **remember, plan, and decide** — so nothing in your kitchen gets forgotten.
+
+---
+
+## 👥 Who This Is For
+
+> For the **college student** living alone, juggling deadlines and groceries.
+> For the **parent** trying to stretch the family budget a little further.
+> For the **working professional** who meal preps but forgets what's in the fridge.
+> For anyone who has ever opened their pantry and asked —
+> *"Wait, when did I buy this?"*
 
 ---
 
@@ -116,7 +181,7 @@ ShelfSense is a cross-platform mobile and web app built with modern tools:
 ### 🤖 AI & Scanning
 | Tool | Purpose |
 |---|---|
-| **Google Gemini** | Powers Chef Sage (AI assistant) and reads expiry dates from camera images |
+| **Google Gemini** | Powers the AI Chef Assistant and reads expiry dates from camera images |
 | **expo-camera** | Native barcode and expiry date scanning on mobile |
 | **html5-qrcode** | Barcode scanning on the web version |
 
@@ -155,15 +220,15 @@ ShelfSense is a cross-platform mobile and web app built with modern tools:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/shelfsense.git
-cd shelfsense
+git clone https://github.com/Vallywi/ShelfSense.git
+cd ShelfSense
 
 # Install dependencies
 npm install
 
 # Set up environment variables
 cp .env.example .env
-# Fill in your API keys (Gemini, Firebase, Upstash, JWT)
+# Fill in your own API keys
 
 # Start the app
 npx expo start
@@ -171,26 +236,6 @@ npx expo start
 # Run the API server (separate terminal)
 npm run api
 ```
-
-### Environment Variables
-
-```env
-GEMINI_API_KEY=your_gemini_key
-FIREBASE_API_KEY=your_firebase_key
-UPSTASH_REDIS_URL=your_upstash_url
-UPSTASH_REDIS_TOKEN=your_upstash_token
-JWT_SECRET=your_jwt_secret
-```
-
----
-
-## 👥 Who This Is For
-
-> For the **college student** living alone, juggling deadlines and groceries.
-> For the **parent** trying to stretch the family budget a little further.
-> For the **working professional** who meal preps but forgets what's in the fridge.
-> For anyone who has ever opened their pantry and asked —
-> *"Wait, when did I buy this?"*
 
 ---
 
@@ -206,6 +251,6 @@ Food waste is not a trash problem. **It's an awareness problem.**
 
 <div align="center">
 
-Made with 💚 for Filipino households &nbsp;·&nbsp; Hackathon 2025
+Made with 💚 for Filipino households &nbsp;·&nbsp; <i>Byte Me </i> &nbsp;·&nbsp; Devkada 2026
 
 </div>
